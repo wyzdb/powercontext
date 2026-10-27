@@ -1,0 +1,27 @@
+"""Expense approval policy (after the SDD task)."""
+
+from __future__ import annotations
+
+
+def approve(amount: float, category: str, requester: str) -> dict[str, object]:
+    if amount <= 0:
+        raise ValueError("amount must be positive")
+    if not category.strip():
+        raise ValueError("category must not be empty")
+    if not requester.strip():
+        raise ValueError("requester must not be empty")
+    
+    if amount > 500:
+        status = "pending_manager"
+        requires_manager = True
+    else:
+        status = "approved"
+        requires_manager = False
+    
+    return {
+        "status": status,
+        "requires_manager": requires_manager,
+        "amount": amount,
+        "category": category,
+        "requester": requester,
+    }
