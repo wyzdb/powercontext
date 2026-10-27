@@ -2,14 +2,13 @@
   "model": "MiniMax-Text-01",
   "provider": "MiniMax chat completion",
   "endpoint": "https://api.minimax.chat/v1/chat/completions",
+  "status": "offline replay; set MINIMAX_API_KEY and run agent/run_task.py for a live call",
   "request": {
     "system": "You are a careful software engineer. Use only the supplied specification, code and test sources. Return a unified diff that implements the task and preserves every compatibility requirement. Do not edit tests or specs.",
     "user": "Task: Expense requests above 500 must require manager approval while existing validation behaviour stays unchanged. Context: SPEC-001 v1, SPEC-002 v1, code:approvals, test:test_approvals. Return a unified diff rooted at the workspace directory."
   },
   "response_file": "minimax_response.patch",
   "usage": {
-    "prompt_tokens": 1180,
-    "completion_tokens": 214,
-    "total_tokens": 1394
+    "recorded": true
   }
 }
