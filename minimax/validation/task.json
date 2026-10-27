@@ -1,0 +1,10 @@
+{
+  "task_id": "expense-manager-threshold",
+  "description": "Expense requests above 500 must require manager approval while existing validation behaviour stays unchanged.",
+  "required_specs": ["SPEC-001", "SPEC-002"],
+  "required_code": ["code:approvals"],
+  "required_tests": ["test:test_approvals"],
+  "target_tests": ["workspace/tests/test_approvals.py"],
+  "before": "workspace/before/approvals.py",
+  "after": "workspace/after/approvals.py"
+}
