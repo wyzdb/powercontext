@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ResearchFlow · 研途 — Qoder × seekdb × PowerContext</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="nav"><span class="brand">研途 ResearchFlow</span><span class="tag">Qoder × OceanBase 2026</span></header>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">A research memory workspace</p>
+      <h1>让研究资料<br><em>找得到，接得上。</em></h1>
+      <p class="lede">研究生和科研人员的笔记、实验记录、组会待办散落在不同工具里。ResearchFlow 把资料放进 seekdb 检索，把研究方向与进度存进 PowerContext，下次打开直接继续。</p>
+      <div class="actions"><a href="#demo">查看运行方式</a><a class="ghost" href="https://github.com/wyzdb/powercontext/tree/2026-competition-ecosystem/qoder">代码仓库</a></div>
+    </section>
+
+    <section class="metrics">
+      <div><strong>2</strong><span>技术组件实际参与核心流程</span></div>
+      <div><strong>6</strong><span>篇种子研究笔记</span></div>
+      <div><strong>100%</strong><span>本地验证脚本通过</span></div>
+    </section>
+
+    <section class="problem">
+      <p class="kicker">The problem</p>
+      <h2>“上次看到的那篇笔记，<br>到底在哪？”</h2>
+      <p>文献、实验记录和组会 TODO 分散在文件夹、聊天记录和脑内。检索靠关键词，换一个说法就找不到；跨会话后，助手不记得你在做什么方向、上次卡在哪。</p>
+    </section>
+
+    <section class="features">
+      <article><span>01</span><h3>研究资料检索</h3><p>笔记标题、正文和标签统一写入 seekdb 表；查询返回命中片段和可核对的来源 <code>seekdb://rf_notes/...</code>。</p></article>
+      <article><span>02</span><h3>研究记忆画像</h3><p>兴趣、阶段、下一步目标写入 PowerContext Memory。重启模块后读取同一画像，不需要重新介绍自己。</p></article>
+      <article><span>03</span><h3>记忆驱动推荐</h3><p>把读取到的兴趣拼成查询，再从 seekdb 召回相关笔记。记忆不是摆设，直接改变推荐结果。</p></article>
+    </section>
+
+    <section class="flow">
+      <p class="kicker">How it works</p>
+      <h2>一次完整的研究闭环</h2>
+      <ol>
+        <li><b>导入</b><span>笔记写入 seekdb <code>rf_notes</code> 表</span></li>
+        <li><b>检索</b><span>按标题/正文/标签打分，返回真实来源</span></li>
+        <li><b>记住</b><span>用户画像写入 PowerContext Memory</span></li>
+        <li><b>继续</b><span>重启后读记忆，生成下一步推荐</span></li>
+      </ol>
+    </section>
+
+    <section id="demo" class="demo">
+      <p class="kicker">Run it</p>
+      <h2>三分钟体验</h2>
+      <pre><code>cd qoder
+export PYTHONPATH="$(cd .. && pwd)/src"
+pip install -r requirements.txt
+python validation/run.py sqlite
+uvicorn app.main:app --reload</code></pre>
+      <p>打开 <code>http://127.0.0.1:8000</code>：检索 “transformer attention”，保存研究画像，再点击“读取记忆并推荐”。也可以运行 <code>python validation/run.py seekdb</code> 使用 Linux 上的 seekdb 绑定。</p>
+    </section>
+
+    <section class="tech">
+      <p class="kicker">Technology</p>
+      <div class="tech-grid">
+        <div><h3>Qoder</h3><p>需求拆解、后端/前端编码、调试和 Qoder Sites 发布。</p></div>
+        <div><h3>seekdb</h3><p>研究笔记表、关键词候选查询、来源身份返回。</p></div>
+        <div><h3>PowerContext</h3><p>Memory scope 保存研究兴趣、阶段和目标；重启后复用。</p></div>
+      </div>
+    </section>
+
+    <section class="result">
+      <p class="kicker">Validation</p>
+      <h2>可复现的验证结果</h2>
+      <pre><code>{
+  "seeded": 6,
+  "search_hits": ["note-001", "note-006"],
+  "profile": {"interests": ["retrieval", "memory"]},
+  "recommendation_hits": ["note-002", "note-006", "note-003"],
+  "state_reused": "完成 retrieval baseline 的消融实验"
+}</code></pre>
+      <p>before/after 与状态复用细节见仓库的 <code>record/validation_result.json</code>。</p>
+    </section>
+
+    <footer>
+      <p>ResearchFlow · Qoder × OceanBase 2026</p>
+      <p>笔记数据为本地样例；seekdb/PowerContext 为实际查询与记忆路径。</p>
+    </footer>
+  </main>
+</body>
+</html>
