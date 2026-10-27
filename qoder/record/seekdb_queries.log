@@ -1,0 +1,4 @@
+﻿CREATE TABLE rf_notes (note_id VARCHAR(128) PRIMARY KEY, title VARCHAR(512), content LONGTEXT, tags VARCHAR(512), created_at VARCHAR(64));
+SELECT note_id, title, content, tags, created_at FROM rf_notes ORDER BY note_id;
+-- search candidates: title/body/tag scoring for query "transformer attention"
+-- result: note-001 score 5, source seekdb://rf_notes/note-001
