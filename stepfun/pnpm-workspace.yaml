@@ -3,3 +3,8 @@ allowBuilds:
   onnxruntime-node: true
   protobufjs: true
   sharp: true
+onlyBuiltDependencies:
+  - esbuild
+  - onnxruntime-node
+  - protobufjs
+  - sharp

@@ -19,7 +19,7 @@
 
 ```bash
 pnpm install
-pnpm setup          # 下载 binding + 模型 + 拷贝 ORT wasm
+pnpm setup          # 可选：提前下载 binding/模型；pnpm dev/prebuild 也会自动补
 pnpm check:linux    # 仅 Linux：检查 libaio / binding
 pnpm dev            # BFF:8787 + Vite:5173
 ```
