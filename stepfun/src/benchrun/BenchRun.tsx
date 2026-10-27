@@ -66,6 +66,9 @@ interface ConfigResult {
   dbMsP95: number;
   totalMsMedian: number;
   totalMsP95: number;
+  totalMsMax: number;
+  warmupMs: number;
+  firstAnswerMs: number;
   recall5: number;
   ndcg5: number;
   mrr10: number;
@@ -78,6 +81,7 @@ interface ConfigResult {
 const CONFIGS: Array<{ id: string; device: BackendDevice; dtype: Dtype }> = [
   { id: "fp32-wasm", device: "wasm", dtype: "fp32" },
   { id: "int8-wasm", device: "wasm", dtype: "int8" },
+  { id: "fp32-webgpu", device: "webgpu", dtype: "fp32" },
   { id: "fp16-webgpu", device: "webgpu", dtype: "fp16" },
 ];
 
@@ -123,6 +127,11 @@ export default function BenchRun() {
       const baseline = collected.find((item) => item.id === "fp32-wasm");
       if (baseline) {
         for (const result of collected) {
+          if (result.id === "fp32-wasm") {
+            result.jaccard10VsBaseline = undefined;
+            result.kendallVsBaseline = undefined;
+            continue;
+          }
           const pairs = result.perQuery
             .map((query) => {
               const base = baseline.perQuery.find((item) => item.id === query.id);
@@ -132,7 +141,12 @@ export default function BenchRun() {
                 kendall: kendallTau(base.ranked, query.ranked),
               };
             })
-            .filter((item): item is { jaccard: number; kendall: number } => Boolean(item));
+            .filter(
+              (item): item is { jaccard: number; kendall: number } =>
+                item !== null &&
+                Number.isFinite(item.jaccard) &&
+                Number.isFinite(item.kendall),
+            );
           result.jaccard10VsBaseline = mean(pairs.map((item) => item.jaccard));
           result.kendallVsBaseline = mean(pairs.map((item) => item.kendall));
           for (const query of result.perQuery) {
@@ -174,9 +188,10 @@ export default function BenchRun() {
         </p>
         <h1 className="serif mt-1 text-2xl">量化与后端的检索质量/延迟对照</h1>
         <p className="mt-2 max-w-3xl text-[13px] leading-6 text-[var(--color-muted)]">
-          对同一份语料、同一组 20 条查询，分别用 fp32/wasm、int8/wasm、fp16/webgpu
-          建库、刷新、检索，计算 Recall@5 / nDCG@5 / MRR@10，并给出相对 FP32
-          的 Top-10 Jaccard 与 Kendall τ。每个配置使用独立 collection。
+          对同一份语料、同一组 20 条查询，分别用 fp32/wasm、int8/wasm、fp32/webgpu、
+          fp16/webgpu 建库、刷新、检索，计算 Recall@5 / nDCG@5 / MRR@10，并给出相对
+          FP32/WASM 的 Top-10 Jaccard 与 Kendall τ。每个配置使用独立 collection；
+          warm-up 不计入文档/查询计时。
         </p>
       </header>
 
@@ -195,16 +210,20 @@ export default function BenchRun() {
 
       {results.length > 0 && (
         <section className="card mt-5 overflow-x-auto">
-          <table className="w-full min-w-[980px] text-left text-[12px]">
+          <table className="w-full min-w-[1180px] text-left text-[12px]">
             <thead className="bg-[#f7f4ec] text-[10.5px] uppercase tracking-wide text-[var(--color-muted)]">
               <tr>
                 <th className="px-4 py-2 font-medium">配置</th>
                 <th className="px-4 py-2 text-right font-medium">加载 ms</th>
+                <th className="px-4 py-2 text-right font-medium">预热 ms</th>
+                <th className="px-4 py-2 text-right font-medium">首答 ms</th>
                 <th className="px-4 py-2 text-right font-medium">docs/s</th>
                 <th className="px-4 py-2 text-right font-medium">刷新 ms</th>
                 <th className="px-4 py-2 text-right font-medium">查询嵌入 p50</th>
                 <th className="px-4 py-2 text-right font-medium">seekdb p50</th>
                 <th className="px-4 py-2 text-right font-medium">端到端 p50</th>
+                <th className="px-4 py-2 text-right font-medium">p95</th>
+                <th className="px-4 py-2 text-right font-medium">max</th>
                 <th className="px-4 py-2 text-right font-medium">Recall@5</th>
                 <th className="px-4 py-2 text-right font-medium">nDCG@5</th>
                 <th className="px-4 py-2 text-right font-medium">MRR@10</th>
@@ -217,11 +236,15 @@ export default function BenchRun() {
                 <tr key={row.id} className="border-t border-[var(--color-line)]">
                   <td className="px-4 py-2 font-medium">{row.id}</td>
                   <td className="mono px-4 py-2 text-right">{Math.round(row.loadMs)}</td>
+                  <td className="mono px-4 py-2 text-right">{Math.round(row.warmupMs)}</td>
+                  <td className="mono px-4 py-2 text-right">{Math.round(row.firstAnswerMs)}</td>
                   <td className="mono px-4 py-2 text-right">{row.docsPerSecond.toFixed(1)}</td>
                   <td className="mono px-4 py-2 text-right">{Math.round(row.refreshMs)}</td>
                   <td className="mono px-4 py-2 text-right">{row.queryEmbedMsMedian.toFixed(1)}</td>
                   <td className="mono px-4 py-2 text-right">{row.dbMsMedian.toFixed(1)}</td>
                   <td className="mono px-4 py-2 text-right">{row.totalMsMedian.toFixed(1)}</td>
+                  <td className="mono px-4 py-2 text-right">{row.totalMsP95.toFixed(1)}</td>
+                  <td className="mono px-4 py-2 text-right">{row.totalMsMax.toFixed(1)}</td>
                   <td className="mono px-4 py-2 text-right">{row.recall5.toFixed(3)}</td>
                   <td className="mono px-4 py-2 text-right">{row.ndcg5.toFixed(3)}</td>
                   <td className="mono px-4 py-2 text-right">{row.mrr10.toFixed(3)}</td>
@@ -266,11 +289,20 @@ async function runConfig(
       dtype: config.dtype,
     });
 
+    // Warm-up is outside every timed window. WebGPU shader compilation and the
+    // first allocation otherwise land inside the first document batch or the
+    // first query, which is exactly the number this benchmark must not inflate.
+    const warmupStarted = performance.now();
+    await embed(["warm-up"], { batchSize: 1 });
+    const warmupMs = performance.now() - warmupStarted;
+
+    const ordered = [...chunks].sort((a, b) => a.text.length - b.text.length);
+
     const embedStarted = performance.now();
     const vectors: number[][] = [];
     const batchSize = 16;
-    for (let offset = 0; offset < chunks.length; offset += batchSize) {
-      const batch = chunks.slice(offset, offset + batchSize);
+    for (let offset = 0; offset < ordered.length; offset += batchSize) {
+      const batch = ordered.slice(offset, offset + batchSize);
       const result = await embed(
         batch.map((chunk) => chunk.text),
         { batchSize },
@@ -280,8 +312,8 @@ async function runConfig(
     const docEmbedMs = performance.now() - embedStarted;
 
     const writeStarted = performance.now();
-    for (let offset = 0; offset < chunks.length; offset += batchSize) {
-      const batch = chunks.slice(offset, offset + batchSize);
+    for (let offset = 0; offset < ordered.length; offset += batchSize) {
+      const batch = ordered.slice(offset, offset + batchSize);
       await api.addDocs(
         kb.id,
         batch.map((chunk, index) => ({
@@ -290,6 +322,7 @@ async function runConfig(
           metadata: chunk.metadata,
           embedding: vectors[offset + index],
         })),
+        config.dtype as "fp32" | "int8" | "fp16",
       );
     }
     const writeMs = performance.now() - writeStarted;
@@ -335,15 +368,19 @@ async function runConfig(
       kbId: kb.id,
       loadMs: loaded.loadMs,
       docEmbedMs,
-      docsPerSecond: chunks.length / (docEmbedMs / 1000),
+      docsPerSecond: ordered.length / (docEmbedMs / 1000),
       writeMs,
       refreshMs,
+      warmupMs,
+      firstAnswerMs:
+        loaded.loadMs + warmupMs + (perQuery[0]?.totalMs ?? 0),
       queryEmbedMsMedian: median(perQuery.map((item) => item.queryEmbedMs)),
       queryEmbedMsP95: p95(perQuery.map((item) => item.queryEmbedMs)),
       dbMsMedian: median(perQuery.map((item) => item.dbMs)),
       dbMsP95: p95(perQuery.map((item) => item.dbMs)),
       totalMsMedian: median(perQuery.map((item) => item.totalMs)),
       totalMsP95: p95(perQuery.map((item) => item.totalMs)),
+      totalMsMax: Math.max(...perQuery.map((item) => item.totalMs)),
       recall5: mean(perQuery.map((item) => item.recall5)),
       ndcg5: mean(perQuery.map((item) => item.ndcg5)),
       mrr10: mean(perQuery.map((item) => item.mrr10)),

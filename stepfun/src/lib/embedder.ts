@@ -71,7 +71,10 @@ export async function embed(
   if (!loaded) throw new Error("embedder 尚未加载");
   const started = performance.now();
   const output = await loaded.pipe(texts, {
-    pooling: "mean",
+    // BGE v1.5 was trained with CLS pooling (see 1_Pooling/config.json:
+    // pooling_mode_cls_token=true). Mean pooling is a common shortcut but is a
+    // different embedding function; do not mix its vectors with CLS vectors.
+    pooling: "cls",
     normalize: true,
     batch_size: options.batchSize ?? 8,
   });

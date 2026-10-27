@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 // Run the /benchrun page (fp32/wasm, int8/wasm, fp16/webgpu) and capture the
 // structured quality + latency result. Headful Chrome is used for WebGPU.
-import { mkdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "@playwright/test";
+
+const runId = process.env.RUN_ID;
+const suffix = runId ? `-${runId}` : "";
+const outputFile = `bench/results/phase4/bench${suffix}.json`;
 
 const browser = await chromium.launch({
   channel: "chrome",
@@ -31,17 +35,18 @@ await page.waitForFunction(() => window.__BENCH_RESULT__ !== undefined, null, {
 const result = await page.evaluate(() => window.__BENCH_RESULT__);
 
 await mkdir("bench/results/phase4", { recursive: true });
-await writeFile(
-  "bench/results/phase4/bench.json",
-  JSON.stringify({ result, logs }, null, 2),
-);
+await writeFile(outputFile, JSON.stringify({ result, logs }, null, 2));
+if (!runId) {
+  await copyFile(outputFile, "public/bench/phase4.json");
+}
 await page.screenshot({
-  path: "bench/results/phase4/bench.png",
-  fullPage: true,
+  path: `bench/results/phase4/bench${suffix}.png`,
+  fullPage: false,
+  timeout: 60_000,
 });
 
 console.log(JSON.stringify(result, null, 2));
 console.log("\n--- logs ---");
 console.log(logs.join("\n") || "(no console errors)");
 await browser.close();
-console.log("\nwrote bench/results/phase4/bench.json and bench.png");
+console.log(`\nwrote ${outputFile} and bench${suffix}.png`);

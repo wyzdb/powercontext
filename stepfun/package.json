@@ -4,11 +4,12 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "setup": "pnpm prepare:ort && pnpm models:fetch",
+    "setup": "pnpm prepare:ort && pnpm prepare:seekdb && pnpm models:fetch",
     "prepare:ort": "node scripts/prepare-ort.mjs",
+    "prepare:seekdb": "node scripts/prepare-seekdb.mjs",
     "models:fetch": "node scripts/fetch-models.mjs",
     "check:linux": "bash scripts/check-linux-deps.sh",
-    "predev": "pnpm prepare:ort",
+    "predev": "pnpm prepare:ort && pnpm prepare:seekdb",
     "predev:web": "pnpm prepare:ort",
     "prebuild": "pnpm prepare:ort",
     "dev": "concurrently -k -n server,web -c blue,green \"WATCH=1 bash scripts/run-embedded.sh\" \"vite\"",
@@ -18,10 +19,11 @@
     "start": "tsx server/index.ts",
     "lint": "oxlint",
     "test": "vitest run",
-    "e2e": "playwright test",
-    "bench": "node scripts/bench-playwright.mjs",
+    "bench": "node scripts/bench-all.mjs",
+    "bench:once": "node scripts/bench-playwright.mjs",
+    "bench:aggregate": "node scripts/aggregate-bench.mjs",
+    "check:saturation": "node scripts/check-saturation.mjs",
     "demo": "node scripts/demo-playwright.mjs",
-    "quantize": "python scripts/quantize.py",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -44,6 +46,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "@webgpu/types": "^0.1.74",
     "concurrently": "^10.0.6",
+    "esbuild": "^0.28.2",
     "oxlint": "^1.89.0",
     "pino-pretty": "^13.2.0",
     "recharts": "^3.10.1",
@@ -52,5 +55,8 @@
     "typescript": "~7.0.2",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
+  },
+  "optionalDependencies": {
+    "@seekdb/js-bindings": "1.4.0"
   }
 }

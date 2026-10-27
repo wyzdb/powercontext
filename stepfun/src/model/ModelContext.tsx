@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
   type ReactNode,
@@ -30,6 +31,7 @@ interface ModelContextValue {
   choice: ModelChoice | null;
   progress: string;
   loadMs: number | null;
+  warmupMs: number | null;
   error: string | null;
   gpu: GpuProbe | null;
   forceWasm: boolean;
@@ -48,6 +50,7 @@ export function ModelProvider({ children }: { children: ReactNode }) {
   const [choice, setChoice] = useState<ModelChoice | null>(null);
   const [progress, setProgress] = useState("");
   const [loadMs, setLoadMs] = useState<number | null>(null);
+  const [warmupMs, setWarmupMs] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [gpu, setGpu] = useState<GpuProbe | null>(null);
   const [forceWasm, setForceWasmState] = useState(
@@ -57,6 +60,33 @@ export function ModelProvider({ children }: { children: ReactNode }) {
   const choiceRef = useRef<ModelChoice | null>(null);
   const statusRef = useRef<Status>("idle");
   const loadingRef = useRef<Promise<ModelChoice> | null>(null);
+
+  // Probe the backend on mount so the badge can show "WebGPU · FP16（待加载）"
+  // instead of "模型未加载" until the first import/search. This does not load
+  // weights; actual initialization stays lazy.
+  useEffect(() => {
+    let alive = true;
+    probeWebGPU()
+      .then((probe) => {
+        if (!alive) return;
+        setGpu(probe);
+        if (choiceRef.current) return;
+        setChoice(
+          forceWasm || !probe.ok
+            ? {
+                device: "wasm",
+                dtype: "int8",
+                label: "WASM · INT8（待加载）",
+                reason: forceWasm ? "用户强制使用 WASM" : probe.reason,
+              }
+            : { device: "webgpu", dtype: "fp16", label: "WebGPU · FP16（待加载）" },
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [forceWasm]);
 
   const setForceWasm = useCallback((value: boolean) => {
     localStorage.setItem(FORCE_KEY, value ? "1" : "0");
@@ -104,6 +134,10 @@ export function ModelProvider({ children }: { children: ReactNode }) {
           },
         });
         setLoadMs(Math.round(loaded.loadMs));
+        setProgress("warm-up");
+        const warm = await embed(["warm-up"], { batchSize: 1 });
+        setWarmupMs(Math.round(warm.ms));
+        setProgress("");
         setChoice(candidate);
         choiceRef.current = candidate;
         statusRef.current = "ready";
@@ -126,6 +160,7 @@ export function ModelProvider({ children }: { children: ReactNode }) {
         }
         setStatus("error");
         statusRef.current = "error";
+        setWarmupMs(null);
         setError(String(loadError));
         throw loadError;
       }
@@ -164,6 +199,7 @@ export function ModelProvider({ children }: { children: ReactNode }) {
         choice,
         progress,
         loadMs,
+        warmupMs,
         error,
         gpu,
         forceWasm,

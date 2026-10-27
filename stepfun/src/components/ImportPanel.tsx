@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { KbRecord } from "../lib/api";
 import { api } from "../lib/api";
 import {
@@ -67,8 +67,25 @@ export default function ImportPanel({
   const [running, setRunning] = useState(false);
   const [drag, setDrag] = useState(false);
   const [loadingFiles, setLoadingFiles] = useState(false);
+  const [cancelled, setCancelled] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const cancelRef = useRef(false);
+
+  const dtypeMismatch =
+    kb !== null && model.choice !== null && model.choice.dtype !== kb.dtype;
+
+  // Staged docs and timings belong to the selected collection. Reset when the
+  // user switches KB, otherwise an import started on A can be written into B.
+  useEffect(() => {
+    cancelRef.current = true;
+    setDocs([]);
+    setStage("idle");
+    setDone(0);
+    setTotal(0);
+    setTimings(ZERO);
+    setError(null);
+    setCancelled(false);
+  }, [kb?.id]);
 
   const parseFiles = async (files: FileList | File[]) => {
     setLoadingFiles(true);
@@ -114,8 +131,17 @@ export default function ImportPanel({
 
   const start = async () => {
     if (!kb || docs.length === 0 || running) return;
+    if (dtypeMismatch) {
+      setError(
+        `当前知识库由 ${kb.dtype} 构建，当前编码器是 ${model.choice?.dtype}。` +
+          "两种精度的向量不能混写；请新建知识库，或切回相同精度。",
+      );
+      setStage("error");
+      return;
+    }
     setRunning(true);
     cancelRef.current = false;
+    setCancelled(false);
     setError(null);
     setDone(0);
     setTotal(0);
@@ -128,19 +154,23 @@ export default function ImportPanel({
         chunks.push(...(await buildChunks(doc, { size: 300, overlap: 50 })));
       }
       if (chunks.length === 0) throw new Error("没有解析出任何文本片段");
-      setTotal(chunks.length);
+
+      // Length bucketing: sort by character length before batching so each
+      // batch pads to a shorter max length. IDs/metadata are unaffected.
+      const ordered = [...chunks].sort((a, b) => a.text.length - b.text.length);
+      setTotal(ordered.length);
       const chunkMs = performance.now() - startedAt;
 
       setStage("loading-model");
-      await model.ensure();
+      const choice = await model.ensure();
 
       let embedMs = 0;
       let writeMs = 0;
       const batchSize = 16;
 
-      for (let offset = 0; offset < chunks.length; offset += batchSize) {
+      for (let offset = 0; offset < ordered.length; offset += batchSize) {
         if (cancelRef.current) break;
-        const batch = chunks.slice(offset, offset + batchSize);
+        const batch = ordered.slice(offset, offset + batchSize);
 
         setStage("embedding");
         const embedStarted = performance.now();
@@ -160,12 +190,16 @@ export default function ImportPanel({
             metadata: chunk.metadata,
             embedding: vectors[index],
           })),
+          choice.dtype as "fp32" | "int8" | "fp16",
         );
         writeMs += performance.now() - writeStarted;
 
-        setDone(Math.min(offset + batch.length, chunks.length));
+        setDone(Math.min(offset + batch.length, ordered.length));
         await new Promise((resolve) => window.setTimeout(resolve, 0));
       }
+
+      const wasCancelled = cancelRef.current;
+      setCancelled(wasCancelled);
 
       setStage("refreshing");
       const refreshStarted = performance.now();
@@ -274,6 +308,7 @@ export default function ImportPanel({
                 setDone(0);
                 setTotal(0);
                 setError(null);
+                setCancelled(false);
               }}
               disabled={running || docs.length === 0}
             >
@@ -285,7 +320,7 @@ export default function ImportPanel({
           </div>
 
           {docs.length > 0 && (
-            <ul className="mt-4 max-h-40 space-y-1 overflow-y-auto border-t border-[var(--color-line)] pt-3 text-[11.5px]">
+            <ul className="mt-4 max-h-56 space-y-1 overflow-y-auto border-t border-[var(--color-line)] pt-3 text-[11.5px]">
               {docs.slice(0, 8).map((doc) => (
                 <li key={doc.id} className="flex items-baseline justify-between gap-3">
                   <span className="truncate">{doc.title}</span>
@@ -310,10 +345,19 @@ export default function ImportPanel({
             刷新前新片段可能查不到，这是 seekdb 的异步索引语义。
           </p>
 
+          {dtypeMismatch && (
+            <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-5 text-[var(--color-warn)]">
+              知识库由 <span className="mono">{kb.dtype}</span> 构建，当前编码器是{" "}
+              <span className="mono">{model.choice?.dtype}</span>。
+              两种精度的向量不能混写，导入已禁用。请新建一个同精度知识库，或切回{" "}
+              <span className="mono">{kb.dtype}</span>。
+            </p>
+          )}
+
           <button
             className="btn btn-primary mt-4 justify-center"
             onClick={start}
-            disabled={running || docs.length === 0}
+            disabled={running || docs.length === 0 || dtypeMismatch}
           >
             {running ? "导入中…" : "开始导入"}
           </button>
@@ -337,7 +381,9 @@ export default function ImportPanel({
                 {stage === "loading-model"
                   ? `模型加载 ${model.progress}`
                   : stage === "done"
-                    ? "完成"
+                    ? cancelled
+                      ? "已取消（保留已写入部分）"
+                      : "完成"
                     : stage === "error"
                       ? "失败"
                       : stage === "idle"

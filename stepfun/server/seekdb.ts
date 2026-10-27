@@ -357,11 +357,21 @@ export async function deleteKb(id: string): Promise<void> {
 export async function addDocs(
   id: string,
   docs: DocInput[],
+  encoderDtype?: string,
 ): Promise<{ inserted: number; ms: number }> {
   if (docs.length === 0) return { inserted: 0, ms: 0 };
   const client = await getClient();
   const row = await getKbRow(id);
   const dim = Number(row.dim);
+
+  if (encoderDtype && encoderDtype !== String(row.dtype)) {
+    const error = new Error(
+      `编码器精度不一致：知识库由 ${String(row.dtype)} 构建，当前编码器是 ${encoderDtype}。` +
+        "为避免两种精度的向量混进同一 collection，导入已拒绝；请新建知识库，或切回相同精度。",
+    ) as Error & { statusCode?: number };
+    error.statusCode = 409;
+    throw error;
+  }
 
   for (const doc of docs) {
     if (doc.embedding.length !== dim) {
@@ -466,6 +476,9 @@ export async function searchKb(
   input: SearchInput,
 ): Promise<SearchOutput> {
   const client = await getClient();
+  // Include manifest lookup + collection lookup in the server-side number:
+  // reporting only collection.hybridSearch() understates the request cost.
+  const started = performance.now();
   const row = await getKbRow(id);
   const dim = Number(row.dim);
   if (input.embedding.length !== dim) {
@@ -497,7 +510,6 @@ export async function searchKb(
   };
 
   const query = escapeFulltext(input.query);
-  const started = performance.now();
 
   try {
     const result = query

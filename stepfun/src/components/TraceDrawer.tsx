@@ -16,6 +16,15 @@ export default function TraceDrawer({ traceId, onClose }: TraceDrawerProps) {
 
   useEffect(() => {
     if (!traceId) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [traceId, onClose]);
+
+  useEffect(() => {
+    if (!traceId) return;
     let alive = true;
     setLoading(true);
     setError(null);
@@ -43,7 +52,10 @@ export default function TraceDrawer({ traceId, onClose }: TraceDrawerProps) {
     ) ??
     entries.find((entry) => /DBMS_HYBRID_SEARCH/i.test(entry.sql));
   const sql = hybrid?.sql ?? "";
-  const shown = showFull ? sql : sql.slice(0, 5000);
+  // The 512-float vector literal is useful evidence but unreadable in a drawer.
+  // Collapse it for display; "复制" still copies the original SQL.
+  const displaySql = sql.replace(/'\[[^\]]{200,}\]'/g, "'[ … 512 floats … ]'");
+  const shown = showFull ? displaySql : displaySql.slice(0, 5000);
   const totalMs = entries.reduce((sum, entry) => sum + entry.ms, 0);
 
   const copy = async () => {

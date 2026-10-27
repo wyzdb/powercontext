@@ -92,10 +92,10 @@ export const api = {
     request<{ ok: boolean }>(`/api/kbs/${encodeURIComponent(id)}`, {
       method: "DELETE",
     }),
-  addDocs: (id: string, docs: DocPayload[]) =>
+  addDocs: (id: string, docs: DocPayload[], encoderDtype?: Dtype) =>
     request<{ inserted: number; ms: number }>(
       `/api/kbs/${encodeURIComponent(id)}/docs`,
-      json({ docs }),
+      json({ docs, encoderDtype }),
     ),
   refresh: (id: string) =>
     request<{ ms: number; count: number }>(

@@ -42,7 +42,7 @@ export function jaccardAtK(a: string[], b: string[], k: number): number {
 
 export function kendallTau(a: string[], b: string[]): number {
   const common = a.filter((id) => b.includes(id));
-  if (common.length < 2) return 1;
+  if (common.length < 2) return Number.NaN;
   let concordant = 0;
   let discordant = 0;
   for (let i = 0; i < common.length; i += 1) {
@@ -57,8 +57,9 @@ export function kendallTau(a: string[], b: string[]): number {
 }
 
 export function mean(values: number[]): number {
-  if (values.length === 0) return 0;
-  return values.reduce((sum, value) => sum + value, 0) / values.length;
+  const valid = values.filter((value) => Number.isFinite(value));
+  if (valid.length === 0) return 0;
+  return valid.reduce((sum, value) => sum + value, 0) / valid.length;
 }
 
 export function median(values: number[]): number {

@@ -18,11 +18,19 @@ export PORT="${PORT:-8787}"
 if [[ "${SEEKDB_MODE}" == "embedded" ]]; then
   if [[ "$(uname -s)" == "Darwin" ]]; then
     LIB="$(find "${HOME}/.seekdb/bindings" -name 'libseekdb.dylib' 2>/dev/null | head -n 1 || true)"
+    if [[ -z "${LIB}" ]]; then
+      node scripts/prepare-seekdb.mjs || true
+      LIB="$(find "${HOME}/.seekdb/bindings" -name 'libseekdb.dylib' 2>/dev/null | head -n 1 || true)"
+    fi
     if [[ -n "${LIB}" && -z "${DYLD_INSERT_LIBRARIES:-}" ]]; then
       export DYLD_INSERT_LIBRARIES="${LIB}"
     fi
   else
     LIB="$(find "${HOME}/.seekdb/bindings" -name 'libseekdb.so' 2>/dev/null | head -n 1 || true)"
+    if [[ -z "${LIB}" ]]; then
+      node scripts/prepare-seekdb.mjs || true
+      LIB="$(find "${HOME}/.seekdb/bindings" -name 'libseekdb.so' 2>/dev/null | head -n 1 || true)"
+    fi
     if [[ -n "${LIB}" && -z "${LD_PRELOAD:-}" ]]; then
       export LD_PRELOAD="${LIB}"
     fi

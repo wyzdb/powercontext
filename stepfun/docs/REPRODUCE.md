@@ -1,27 +1,29 @@
 # 复现步骤
 
-目标：在一台干净的机器上，从 clone 到看到“导入 → 检索 → SQL trace → 基准表”。
+目标：在一台干净的机器上，从代码目录到看到“导入 → 检索 → SQL trace → 基准表”。
 
 ## 1 前置
 
 | 依赖 | 版本 | 检查 |
 |---|---|---|
 | Node.js | 20+（实测 22.19 / 24.22） | `node -v` |
-| pnpm | 9+（实测 12.15） | `pnpm -v` |
+| pnpm | 10+（实测 12.15） | `pnpm -v` |
 | Chrome / Edge | 最新版（WebGPU 可选） | `chrome://gpu` |
 | seekdb | 1.4.0 | 嵌入式自动安装；或 Docker `oceanbase/seekdb` |
+| Docker Desktop 或 WSL2 | Windows 必选其一 | `docker --version` / `wsl -l -v` |
 | Python（可选） | 3.11–3.13 | 只有跑 `scripts/quantize.py` 需要 |
 
-模型约 166 MiB，ORT wasm 约 33 MiB；首次需要网络。磁盘预留 500 MB。
+模型约 166 MB（159 MiB），ORT wasm 约 33 MiB；首次需要网络。磁盘预留 500 MB。
 
-## 2 获取代码
+## 2 进入代码目录
+
+本提交已经把全部代码放在 `stepfun/`。如果拿到的是私有仓库：
 
 ```bash
-git clone -b 2026-competition-ecosystem <your-private-repo-url> powercontext
 cd powercontext/stepfun
 ```
 
-若仓库里 `stepfun/` 还是空的，把本目录内容放进去，保持路径不变。
+如果拿到的是压缩包，解压后进入 `stepfun/`，保持相对路径不变。后续命令都在这个目录执行。
 
 ## 3 安装依赖与模型
 
@@ -30,10 +32,11 @@ pnpm install
 pnpm setup          # prepare:ort + models:fetch
 ```
 
-`pnpm setup` 做两件事：
+`pnpm setup` 做三件事：
 
 1. 把 `node_modules/onnxruntime-web/dist` 下的 4 个 ORT wasm/mjs 文件复制到 `public/ort`；
-2. 从 Hugging Face（或 `HF_ENDPOINT` 指定的镜像）下载模型到 `public/models/Xenova/bge-small-zh-v1.5`，逐文件校验 SHA-256。
+2. 下载 seekdb 的 Linux/macOS 原生 binding（Windows 跳过；这一步只下载，不加载，避免首次启动找不到 `libseekdb.so`）；
+3. 从 Hugging Face（或 `HF_ENDPOINT` 指定的镜像）下载模型到 `public/models/Xenova/bge-small-zh-v1.5`，逐文件校验 SHA-256。
 
 国内网络建议：
 
@@ -58,11 +61,15 @@ pnpm dev
 Linux 如果报 `libaio.so.1`：
 
 ```bash
+# Ubuntu 22.04
+sudo apt-get install -y libaio1
+# Ubuntu 24.04
 sudo apt-get install -y libaio1t64
-sudo ln -sf /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
+sudo ln -sf /usr/lib/$(uname -m)-linux-gnu/libaio.so.1t64 \
+            /usr/lib/$(uname -m)-linux-gnu/libaio.so.1
 ```
 
-如果报 `cannot allocate memory in static TLS block`：不要直接 `tsx server/index.ts`，用 `scripts/run-embedded.sh`；它会在启动前设置 `LD_PRELOAD`。
+如果报 `cannot allocate memory in static TLS block`：不要直接 `tsx server/index.ts`，用 `scripts/run-embedded.sh`；它会在启动前设置 `LD_PRELOAD`。首次运行前 `pnpm setup` 已经把 binding 下载好；如果跳过 `setup`，wrapper 会自己补下载。
 
 ## 4B Docker：本地 server
 
@@ -82,23 +89,42 @@ docker logs stepfun-seekdb --tail 20
 
 ## 4C Windows + WSL2：本仓库实际验证的方式
 
-WSL（Ubuntu 22.04/24.04）：
+WSL（Ubuntu 22.04/24.04）先装 Node 20+ 与 pnpm：
 
 ```bash
-sudo apt-get install -y libaio1t64 rsync
-sudo ln -sf /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt-get install -y nodejs rsync
+sudo npm install -g pnpm@12
+```
+
+再装 libaio（22.04 用 `libaio1`，24.04 用 `libaio1t64` + 符号链接）：
+
+```bash
+# Ubuntu 24.04 示例
+sudo apt-get install -y libaio1t64
+sudo ln -sf /usr/lib/$(uname -m)-linux-gnu/libaio.so.1t64 \
+            /usr/lib/$(uname -m)-linux-gnu/libaio.so.1
+```
+
+把代码复制到 Linux 文件系统（不要在 `/mnt/d` 上复用 Windows 的 `node_modules`）：
+
+```bash
+export REPO=/mnt/d/powercontext-gaode/stepfun   # 改成你的实际路径
 mkdir -p ~/stepfun
 rsync -a --exclude node_modules --exclude dist --exclude .seekdb-data \
-  /mnt/d/powercontext-gaode/stepfun/ ~/stepfun/
+  "$REPO/" ~/stepfun/
 cd ~/stepfun
 pnpm install
+pnpm setup
 bash scripts/run-embedded.sh
 ```
 
-Windows：
+Windows 侧需要**单独**安装依赖和模型（Vite 在 Windows 上服务 `public/models`，`/api` 代理到 WSL 的 8787）：
 
 ```powershell
 cd D:\powercontext-gaode\stepfun
+pnpm install
+pnpm setup
 pnpm dev:web
 ```
 
@@ -134,7 +160,7 @@ pnpm demo                             # UI 截图；写 bench/results/demo
 预期（本机）：
 
 - `phase2`：fp32/wasm、int8/wasm、fp16/webgpu 三行；fp16/webgpu 的 batch32 约 1.7 ms/条。
-- `phase4`：三行；fp16/webgpu docs/s 约 34.9，端到端 p50 约 28.8 ms，nDCG@5 0.986。
+- `phase4`：四行；fp16/webgpu docs/s 约 56，端到端 p50 约 35.3 ms，nDCG@5 0.980；fp32/wasm 约 13.2 docs/s / 43.3 ms；int8/wasm 首答约 292 ms。
 - `demo`：`import.png`、`search.png`、`sql.png`。
 
 数字会随设备/浏览器/缓存变化；趋势应一致。
@@ -144,6 +170,7 @@ pnpm demo                             # UI 截图；写 bench/results/demo
 - [ ] `pnpm install` 退出码 0（pnpm 12 的 `allowBuilds` 已写在 `pnpm-workspace.yaml`）。
 - [ ] `pnpm build` 退出码 0。
 - [ ] `pnpm exec tsc -b` 退出码 0。
+- [ ] `pnpm test` 通过（10 个指标/分块用例）。
 - [ ] `/api/health` 返回 `ok:true` 与 seekdb 版本。
 - [ ] 导入 20 篇后 `count` 为 20。
 - [ ] 检索返回非空，SQL trace 中有 `DBMS_HYBRID_SEARCH` 生成的 SQL。

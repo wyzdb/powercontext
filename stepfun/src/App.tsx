@@ -46,6 +46,18 @@ export default function App() {
       .finally(() => setLoading(false));
   }, [refresh]);
 
+  const retry = useCallback(async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      await refresh();
+    } catch (retryError) {
+      setError(String(retryError));
+    } finally {
+      setLoading(false);
+    }
+  }, [refresh]);
+
   const currentKb = useMemo(
     () => kbs.find((kb) => kb.id === currentId) ?? null,
     [kbs, currentId],
@@ -118,15 +130,28 @@ export default function App() {
 
         <div className="scroll-thin flex-1 overflow-y-auto px-7 py-6">
           {error && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-[var(--color-danger)]">
-              {error}
+            <div className="mb-4 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-[var(--color-danger)]">
+              <span className="flex-1">{error}</span>
+              <button className="btn btn-ghost py-1 text-[10.5px]" onClick={retry}>
+                重试
+              </button>
             </div>
           )}
 
           {health && !health.ok && (
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[12px] leading-5 text-[var(--color-warn)]">
-              <strong className="font-semibold">seekdb 未连接。</strong>{" "}
-              {health.error}
+              <div className="flex items-center gap-3">
+                <span className="flex-1">
+                  <strong className="font-semibold">seekdb 未连接。</strong>{" "}
+                  {health.error}
+                </span>
+                <button
+                  className="btn btn-ghost py-1 text-[10.5px]"
+                  onClick={retry}
+                >
+                  重试连接
+                </button>
+              </div>
               {health.hints && (
                 <details className="mt-1">
                   <summary className="cursor-pointer">查看启动命令</summary>

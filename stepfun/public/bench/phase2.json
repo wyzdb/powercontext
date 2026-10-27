@@ -8,11 +8,11 @@
       {
         "device": "wasm",
         "dtype": "fp32",
-        "loadMs": 7066,
-        "warmupMs": 57,
-        "embedMs": 58,
-        "perTextMs": 19.3,
-        "queryMs": 19.9,
+        "loadMs": 1278,
+        "warmupMs": 58,
+        "embedMs": 51,
+        "perTextMs": 17.1,
+        "queryMs": 18.2,
         "dim": 512,
         "norms": [
           1,
@@ -22,39 +22,39 @@
         "batchSweep": [
           {
             "batchSize": 1,
-            "ms": 20,
-            "perTextMs": 20
+            "ms": 17,
+            "perTextMs": 17.1
           },
           {
             "batchSize": 4,
-            "ms": 70,
-            "perTextMs": 17.6
+            "ms": 64,
+            "perTextMs": 16
           },
           {
             "batchSize": 8,
-            "ms": 129,
-            "perTextMs": 16.2
+            "ms": 125,
+            "perTextMs": 15.6
           },
           {
             "batchSize": 16,
-            "ms": 263,
-            "perTextMs": 16.4
+            "ms": 244,
+            "perTextMs": 15.3
           },
           {
             "batchSize": 32,
-            "ms": 524,
-            "perTextMs": 16.4
+            "ms": 492,
+            "perTextMs": 15.4
           }
         ]
       },
       {
         "device": "wasm",
         "dtype": "int8",
-        "loadMs": 498,
-        "warmupMs": 19,
-        "embedMs": 37,
-        "perTextMs": 12.2,
-        "queryMs": 12.1,
+        "loadMs": 294,
+        "warmupMs": 16,
+        "embedMs": 40,
+        "perTextMs": 13.4,
+        "queryMs": 12.8,
         "dim": 512,
         "norms": [
           1,
@@ -62,46 +62,46 @@
           1
         ],
         "cosineVsFp32": [
-          0.96994,
-          0.96631,
-          0.961
+          0.96766,
+          0.97092,
+          0.96674
         ],
         "batchSweep": [
           {
             "batchSize": 1,
-            "ms": 13,
-            "perTextMs": 12.8
+            "ms": 14,
+            "perTextMs": 13.5
           },
           {
             "batchSize": 4,
-            "ms": 43,
-            "perTextMs": 10.8
+            "ms": 44,
+            "perTextMs": 11.1
           },
           {
             "batchSize": 8,
-            "ms": 92,
-            "perTextMs": 11.5
+            "ms": 85,
+            "perTextMs": 10.6
           },
           {
             "batchSize": 16,
-            "ms": 171,
-            "perTextMs": 10.7
+            "ms": 175,
+            "perTextMs": 10.9
           },
           {
             "batchSize": 32,
-            "ms": 354,
-            "perTextMs": 11.1
+            "ms": 376,
+            "perTextMs": 11.8
           }
         ]
       },
       {
         "device": "webgpu",
         "dtype": "fp16",
-        "loadMs": 1222,
-        "warmupMs": 337,
-        "embedMs": 113,
-        "perTextMs": 37.5,
-        "queryMs": 13.4,
+        "loadMs": 515,
+        "warmupMs": 347,
+        "embedMs": 117,
+        "perTextMs": 39.2,
+        "queryMs": 14.5,
         "dim": 512,
         "norms": [
           1,
@@ -109,49 +109,51 @@
           1
         ],
         "cosineVsFp32": [
-          0.99999,
-          0.99999,
+          0.99998,
+          0.99998,
           0.99998
         ],
         "batchSweep": [
           {
             "batchSize": 1,
-            "ms": 12,
-            "perTextMs": 12
+            "ms": 13,
+            "perTextMs": 12.5
           },
           {
             "batchSize": 4,
-            "ms": 14,
-            "perTextMs": 3.4
+            "ms": 18,
+            "perTextMs": 4.4
           },
           {
             "batchSize": 8,
-            "ms": 21,
-            "perTextMs": 2.7
+            "ms": 22,
+            "perTextMs": 2.8
           },
           {
             "batchSize": 16,
-            "ms": 33,
-            "perTextMs": 2
+            "ms": 34,
+            "perTextMs": 2.1
           },
           {
             "batchSize": 32,
-            "ms": 55,
+            "ms": 56,
             "perTextMs": 1.7
           }
         ]
       }
     ],
     "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
-    "at": "2026-10-27T13:06:19.680Z"
+    "at": "2026-10-27T13:47:39.836Z"
   },
   "logs": [
+    "[debug] [vite] connecting...",
+    "[debug] [vite] connected.",
     "[debug] [vite] connecting...",
     "[debug] [vite] connected.",
     "[info] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
     "[warning] The powerPreference option is currently ignored when calling requestAdapter() on Windows. See https://crbug.com/369219127",
     "[warning] The powerPreference option is currently ignored when calling requestAdapter() on Windows. See https://crbug.com/369219127",
-    "[error] \u001b[0;93m2026-10-27 21:06:18.969514 [W:onnxruntime:, session_state.cc:1280 VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.\u001b[m",
-    "[error] \u001b[0;93m2026-10-27 21:06:18.971958 [W:onnxruntime:, session_state.cc:1282 VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.\u001b[m"
+    "[error] \u001b[0;93m2026-10-27 21:47:39.092390 [W:onnxruntime:, session_state.cc:1280 VerifyEachNodeIsAssignedToAnEp] Some nodes were not assigned to the preferred execution providers which may or may not have an negative impact on performance. e.g. ORT explicitly assigns shape related ops to CPU to improve perf.\u001b[m",
+    "[error] \u001b[0;93m2026-10-27 21:47:39.093835 [W:onnxruntime:, session_state.cc:1282 VerifyEachNodeIsAssignedToAnEp] Rerunning with verbose output on a non-minimal build will show node assignments.\u001b[m"
   ]
 }

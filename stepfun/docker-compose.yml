@@ -1,6 +1,8 @@
 services:
   seekdb:
-    image: oceanbase/seekdb:latest
+    # Pin the database version. If this tag is unavailable for your platform,
+    # use oceanbase/seekdb:latest and record the actual version in the report.
+    image: oceanbase/seekdb:1.4.0
     container_name: stepfun-seekdb
     ports:
       - "2881:2881"

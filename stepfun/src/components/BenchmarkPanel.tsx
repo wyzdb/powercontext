@@ -24,12 +24,15 @@ interface BenchConfigResult {
   device: string;
   dtype: string;
   loadMs: number;
+  warmupMs?: number;
+  firstAnswerMs?: number;
   docsPerSecond: number;
   refreshMs: number;
   queryEmbedMsMedian: number;
   dbMsMedian: number;
   totalMsMedian: number;
   totalMsP95: number;
+  totalMsMax?: number;
   recall5: number;
   ndcg5: number;
   mrr10: number;
@@ -107,22 +110,25 @@ export default function BenchmarkPanel() {
               <h3 className="text-sm font-semibold">检索质量与端到端延迟</h3>
               <p className="mt-0.5 text-[11px] text-[var(--color-muted)]">
                 {phase4?.result?.at
-                  ? `采集于 ${new Date(phase4.result.at).toLocaleString()}`
+                  ? `最近一次 pnpm bench 的快照：${new Date(phase4.result.at).toLocaleString()}`
                   : ""}{" "}
-                · Jaccard/Kendall 是同一 query 下相对 FP32 的 Top-10 排序一致性
+                · Jaccard/Kendall 是同一 query 下相对 FP32/WASM 的 Top-10 排序一致性
               </p>
             </div>
-            <table className="w-full min-w-[980px] text-left text-[12px]">
+            <table className="w-full min-w-[1180px] text-left text-[12px]">
               <thead className="bg-[#f7f4ec] text-[10px] uppercase tracking-wide text-[var(--color-muted)]">
                 <tr>
                   <th className="px-4 py-2 font-medium">配置</th>
                   <th className="px-4 py-2 text-right font-medium">加载 ms</th>
+                  <th className="px-4 py-2 text-right font-medium">预热 ms</th>
+                  <th className="px-4 py-2 text-right font-medium">首答 ms</th>
                   <th className="px-4 py-2 text-right font-medium">docs/s</th>
                   <th className="px-4 py-2 text-right font-medium">刷新 ms</th>
                   <th className="px-4 py-2 text-right font-medium">查询嵌入 p50</th>
                   <th className="px-4 py-2 text-right font-medium">seekdb p50</th>
                   <th className="px-4 py-2 text-right font-medium">端到端 p50</th>
-                  <th className="px-4 py-2 text-right font-medium">端到端 p95</th>
+                  <th className="px-4 py-2 text-right font-medium">p95</th>
+                  <th className="px-4 py-2 text-right font-medium">max</th>
                   <th className="px-4 py-2 text-right font-medium">Recall@5</th>
                   <th className="px-4 py-2 text-right font-medium">nDCG@5</th>
                   <th className="px-4 py-2 text-right font-medium">MRR@10</th>
@@ -135,12 +141,15 @@ export default function BenchmarkPanel() {
                   <tr key={row.id} className="border-t border-[var(--color-line)]">
                     <td className="px-4 py-2 font-medium">{row.id}</td>
                     <td className="mono px-4 py-2 text-right">{num(row.loadMs, 0)}</td>
+                    <td className="mono px-4 py-2 text-right">{num(row.warmupMs, 0)}</td>
+                    <td className="mono px-4 py-2 text-right">{num(row.firstAnswerMs, 0)}</td>
                     <td className="mono px-4 py-2 text-right">{num(row.docsPerSecond)}</td>
                     <td className="mono px-4 py-2 text-right">{num(row.refreshMs, 0)}</td>
                     <td className="mono px-4 py-2 text-right">{num(row.queryEmbedMsMedian)}</td>
                     <td className="mono px-4 py-2 text-right">{num(row.dbMsMedian)}</td>
                     <td className="mono px-4 py-2 text-right">{num(row.totalMsMedian)}</td>
                     <td className="mono px-4 py-2 text-right">{num(row.totalMsP95)}</td>
+                    <td className="mono px-4 py-2 text-right">{num(row.totalMsMax)}</td>
                     <td className="mono px-4 py-2 text-right">{num(row.recall5, 3)}</td>
                     <td className="mono px-4 py-2 text-right">{num(row.ndcg5, 3)}</td>
                     <td className="mono px-4 py-2 text-right">{num(row.mrr10, 3)}</td>
@@ -163,10 +172,17 @@ export default function BenchmarkPanel() {
           <section className="card px-5 py-4 text-[12.5px] leading-6">
             <h3 className="text-sm font-semibold">读法</h3>
             <p className="mt-1 text-[var(--color-muted)]">
-              FP16/WebGPU 的质量与 FP32 基本一致（nDCG 0.986，Top-10 Jaccard 1.000），
-              文档吞吐 34.9 docs/s（FP32/WASM 12.2），端到端 p50 28.8 ms（46.5 ms）。
-              INT8/WASM 的 nDCG 只掉 0.003，但 Top-10 Jaccard 0.859、Kendall 0.876，
-              说明排名结构确实变了；它适合作为 WASM 降级路径，而不是“质量等价”的替代。
+              同一 dtype 只换后端：FP32/WASM → FP32/WebGPU，文档吞吐 13.2 → 50.8
+              docs/s，端到端 43.3 → 32.7 ms。WebGPU 上 FP16 vs FP32 是吞吐/体积换延迟：
+              56.1 vs 50.8 docs/s、payload 66.4 vs 111.6 MiB，但单条查询 35.3 vs
+              32.7 ms；FP16 作为默认是为了导入吞吐和体积，不是“单条最快”。
+            </p>
+            <p className="mt-2 text-[var(--color-muted)]">
+              INT8/WASM 的首答 292 ms、payload 33.9 MiB，是冷启动/低带宽路径；nDCG
+              0.984、Top-10 Jaccard 0.936，在当前 20 条查询上没有测到相关性损失，但
+              排序结构有变化，不能宣称“无损”。另外，这 20 条查询连字符 bigram
+              基线都能把主文档排到第 1（20/20），所以它只能验证“没有明显下降”，
+              不能用来给编码器排名。
             </p>
           </section>
         </>

@@ -8,10 +8,10 @@
 | ONNX 转换 | `Xenova/bge-small-zh-v1.5` |
 | Revision | `75c43b069aac4d136ba6bc1122f995fedcfd2781` |
 | License | MIT（基础模型与转换仓库） |
-| 架构 | BERT（12 层，hidden 384，512 维输出） |
+| 架构 | BERT（4 层，hidden 512，8 个注意力头，intermediate 2048） |
 | 参数量 | 约 24M |
 | 最大输入 | 512 token |
-| 输出 | 512 维句向量；`pooling=mean` + L2 normalize |
+| 输出 | 512 维句向量；CLS pooling（BGE 官方 `1_Pooling/config.json`）+ L2 normalize |
 | 查询指令 | `为这个句子生成表示以用于检索相关文章：`（仅 query，文档不加） |
 | 语言 | 中文为主，混合英文术语可用 |
 

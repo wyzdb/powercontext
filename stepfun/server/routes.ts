@@ -22,6 +22,7 @@ const CreateKbBody = z.object({
 });
 
 const DocBody = z.object({
+  encoderDtype: Dtype.optional(),
   docs: z
     .array(
       z.object({
@@ -88,8 +89,8 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
 
   app.post("/api/kbs/:id/docs", async (request) => {
     const id = paramId(request.params);
-    const { docs } = parseBody(DocBody, request.body);
-    return addDocs(id, docs);
+    const { docs, encoderDtype } = parseBody(DocBody, request.body);
+    return addDocs(id, docs, encoderDtype);
   });
 
   app.post("/api/kbs/:id/refresh", async (request) => {

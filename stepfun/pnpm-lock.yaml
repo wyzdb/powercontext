@@ -60,6 +60,9 @@ importers:
       concurrently:
         specifier: ^10.0.6
         version: 10.0.6
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
       oxlint:
         specifier: ^1.89.0
         version: 1.89.0
@@ -84,6 +87,10 @@ importers:
       vitest:
         specifier: ^5.0.5
         version: 5.0.5(@types/node@24.19.2)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
+    optionalDependencies:
+      '@seekdb/js-bindings':
+        specifier: 1.4.0
+        version: 1.4.0
 
 packages:
 

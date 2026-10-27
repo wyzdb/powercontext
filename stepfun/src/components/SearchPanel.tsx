@@ -142,8 +142,8 @@ export default function SearchPanel({ kb }: { kb: KbRecord | null }) {
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] leading-5 text-[var(--color-warn)]">
           这个知识库由 <span className="mono">{kb.dtype}</span> 编码器构建，当前查询编码器是{" "}
           <span className="mono">{model.choice?.dtype}</span>。FP16 与 FP32
-          的向量几乎一致，INT8 则会产生可测的质量差异；做质量对比时请在相同
-          dtype 下重建知识库。
+          的向量几乎一致；INT8 会改变向量方向（余弦约 0.966），虽然当前 20
+          条评测集没有测到相关性损失，但不要把它当作无损替代。
         </p>
       )}
 

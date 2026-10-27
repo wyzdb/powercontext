@@ -1,0 +1,148 @@
+{
+  "method": "character bigram overlap / sqrt(document bigrams)",
+  "queries": 20,
+  "top1": 20,
+  "top1Rate": 1,
+  "perQuery": [
+    {
+      "id": "q01",
+      "primary": "webgpu",
+      "rank": 1,
+      "top1": "webgpu",
+      "score": 0.48564293117863205
+    },
+    {
+      "id": "q02",
+      "primary": "hnsw",
+      "rank": 1,
+      "top1": "hnsw",
+      "score": 1.4142135623730951
+    },
+    {
+      "id": "q03",
+      "primary": "rrf",
+      "rank": 1,
+      "top1": "rrf",
+      "score": 0.5521576303742327
+    },
+    {
+      "id": "q04",
+      "primary": "quantization",
+      "rank": 1,
+      "top1": "quantization",
+      "score": 1.025755289064345
+    },
+    {
+      "id": "q05",
+      "primary": "dujiangyan",
+      "rank": 1,
+      "top1": "dujiangyan",
+      "score": 0.3692744729379982
+    },
+    {
+      "id": "q06",
+      "primary": "tide",
+      "rank": 1,
+      "top1": "tide",
+      "score": 0.629940788348712
+    },
+    {
+      "id": "q07",
+      "primary": "marathon-fuel",
+      "rank": 1,
+      "top1": "marathon-fuel",
+      "score": 0.9847319278346618
+    },
+    {
+      "id": "q08",
+      "primary": "urban-heat",
+      "rank": 1,
+      "top1": "urban-heat",
+      "score": 0.8249579113843055
+    },
+    {
+      "id": "q09",
+      "primary": "photosynthesis",
+      "rank": 1,
+      "top1": "photosynthesis",
+      "score": 0.6509445549041194
+    },
+    {
+      "id": "q10",
+      "primary": "great-wall",
+      "rank": 1,
+      "top1": "great-wall",
+      "score": 0.12803687993289598
+    },
+    {
+      "id": "q11",
+      "primary": "coffee-roast",
+      "rank": 1,
+      "top1": "coffee-roast",
+      "score": 0.3441236008058426
+    },
+    {
+      "id": "q12",
+      "primary": "fermentation",
+      "rank": 1,
+      "top1": "fermentation",
+      "score": 0.36380343755449945
+    },
+    {
+      "id": "q13",
+      "primary": "sleep-cycle",
+      "rank": 1,
+      "top1": "sleep-cycle",
+      "score": 0.9036961141150639
+    },
+    {
+      "id": "q14",
+      "primary": "light-pollution",
+      "rank": 1,
+      "top1": "light-pollution",
+      "score": 0.8488746876271654
+    },
+    {
+      "id": "q15",
+      "primary": "rag",
+      "rank": 1,
+      "top1": "rag",
+      "score": 0.6154574548966636
+    },
+    {
+      "id": "q16",
+      "primary": "seekdb",
+      "rank": 1,
+      "top1": "seekdb",
+      "score": 0.8340576562282991
+    },
+    {
+      "id": "q17",
+      "primary": "transformer-attention",
+      "rank": 1,
+      "top1": "transformer-attention",
+      "score": 2.1081851067789197
+    },
+    {
+      "id": "q18",
+      "primary": "ik-tokenizer",
+      "rank": 1,
+      "top1": "ik-tokenizer",
+      "score": 0.5488212999484517
+    },
+    {
+      "id": "q19",
+      "primary": "hybrid-search",
+      "rank": 1,
+      "top1": "hybrid-search",
+      "score": 0.3692744729379982
+    },
+    {
+      "id": "q20",
+      "primary": "wasm",
+      "rank": 1,
+      "top1": "wasm",
+      "score": 1.54713186938819
+    }
+  ]
+}

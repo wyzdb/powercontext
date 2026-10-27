@@ -2,7 +2,7 @@
 // Run the /spike page in real Chrome and capture the structured result.
 // WebGPU needs a real GPU adapter, so this launches headful Chrome (the system
 // Chrome channel) instead of a headless bundled Chromium.
-import { mkdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "@playwright/test";
 
 const browser = await chromium.launch({
@@ -44,9 +44,14 @@ await writeFile(
   "bench/results/phase2/spike.json",
   JSON.stringify({ result, logs }, null, 2),
 );
+await copyFile(
+  "bench/results/phase2/spike.json",
+  "public/bench/phase2.json",
+);
 await page.screenshot({
   path: "bench/results/phase2/spike.png",
-  fullPage: true,
+  fullPage: false,
+  timeout: 60_000,
 });
 await browser.close();
 console.log("\nwrote bench/results/phase2/spike.json and spike.png");

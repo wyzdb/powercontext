@@ -15,6 +15,7 @@ export default function BackendBadge() {
     choice,
     progress,
     loadMs,
+    warmupMs,
     gpu,
     forceWasm,
     setForceWasm,
@@ -30,16 +31,18 @@ export default function BackendBadge() {
           ? "探测后端"
           : status === "error"
             ? "后端错误"
-            : "模型未加载";
+            : choice?.label ?? "模型未加载";
 
   const detail =
     status === "loading"
       ? progress
       : status === "ready" || status === "fallback"
-        ? `${loadMs ?? "—"} ms 加载`
+        ? `${loadMs ?? "—"} ms 加载${warmupMs === null ? "" : ` · ${warmupMs} ms 预热`}`
         : status === "error"
           ? error ?? ""
-          : gpu?.reason ?? "";
+          : status === "idle"
+            ? "首次导入/检索时加载"
+            : gpu?.reason ?? "";
 
   return (
     <div className="flex items-center gap-3">
