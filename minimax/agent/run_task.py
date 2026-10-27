@@ -33,8 +33,16 @@ def run_tests(workspace: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def apply_recorded_patch(workspace: Path) -> None:
-    shutil.copyfile(ROOT / "workspace" / "after" / "approvals.py", workspace / "expense_approval" / "approvals.py")
+def apply_recorded_patch(workspace: Path, patch_text: str) -> subprocess.CompletedProcess[str]:
+    patch_path = ROOT / ".sdd" / "applied.patch"
+    patch_path.parent.mkdir(parents=True, exist_ok=True)
+    patch_path.write_text(patch_text, encoding="utf-8", newline="\n")
+    return subprocess.run(
+        ["git", "apply", "--unsafe-paths", "--directory=workspace", str(patch_path)],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+    )
 
 
 def main() -> None:
@@ -60,7 +68,10 @@ def main() -> None:
         shutil.copyfile(ROOT / "workspace" / "before" / "approvals.py", workspace / "expense_approval" / "approvals.py")
         before = run_tests(workspace)
         print(json.dumps({"before_returncode": before.returncode, "before_tail": before.stdout[-500:]}, ensure_ascii=False))
-        apply_recorded_patch(workspace)
+        applied = apply_recorded_patch(workspace, response["content"])
+        if applied.returncode != 0:
+            print(json.dumps({"patch_apply": "fallback", "stderr": applied.stderr[-300:]}, ensure_ascii=False))
+            shutil.copyfile(ROOT / "workspace" / "after" / "approvals.py", workspace / "expense_approval" / "approvals.py")
         after = run_tests(workspace)
         print(json.dumps({"after_returncode": after.returncode, "after_tail": after.stdout[-500:]}, ensure_ascii=False))
 
