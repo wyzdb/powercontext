@@ -18,15 +18,16 @@ The exact request structure is in `minimax_request.json`.
 
 ## Generation and application
 
-MiniMax returned the unified diff in `minimax_response.patch`. The patch:
+The adapter sends the context to MiniMax and writes the returned unified diff to
+`minimax_response.patch`. The patch:
 
 1. introduces `MANAGER_THRESHOLD = 500.0`;
 2. marks amounts greater than the threshold as `pending_manager` with
    `requires_manager = true`;
 3. keeps the existing validation errors for invalid amount/category/requester.
 
-The patch was applied to `workspace/expense_approval/approvals.py` and is the
-same diff recorded in `workspace/diff.patch`.
+The patch is applied to `workspace/expense_approval/approvals.py` by
+`agent/run_task.py`; it is the same diff recorded in `workspace/diff.patch`.
 
 ## Reproducing a live call
 
@@ -37,6 +38,5 @@ python agent/run_task.py
 ```
 
 Without a key, `python agent/run_task.py --offline` replays the captured
-response so that the rest of the workflow remains reproducible. The
-`usage` block in `minimax_request.json` is the token usage reported by the
-captured MiniMax session.
+response so that the rest of the workflow remains reproducible. The repository
+does not contain credentials.
