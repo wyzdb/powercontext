@@ -1,0 +1,9 @@
+{
+  "model": "MiniMax-Text-01",
+  "usage": {
+    "total_tokens": 1258,
+    "total_characters": 0,
+    "prompt_tokens": 1086,
+    "completion_tokens": 172
+  }
+}
