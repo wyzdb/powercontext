@@ -1,0 +1,4 @@
+httpx>=0.27
+pymysql>=1.1
+pylibseekdb==1.3.0.post5
+pytest>=8
