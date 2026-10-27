@@ -1,0 +1,60 @@
+{
+  "kbA": "kb_smoke_test_kb_12_58_52_int8",
+  "refreshSemantics": {
+    "visibleBefore": false,
+    "visibleAfter": true,
+    "refreshMs": 301.9,
+    "beforeHits": [
+      "d1",
+      "d2",
+      "d3"
+    ],
+    "afterHits": [
+      "d4",
+      "d1",
+      "d2",
+      "d3"
+    ]
+  },
+  "incremental": {
+    "beforeCount": 4,
+    "afterCount": 5,
+    "top": {
+      "id": "d5",
+      "text": "容器编排让多个微服务可以自动扩缩容。",
+      "metadata": {
+        "topic": "cloud",
+        "source": "consistency"
+      },
+      "score": 0.0328,
+      "rank": 1
+    }
+  },
+  "switching": {
+    "kbB": "kb_consistency_b_1793105958_int8",
+    "kbBTop": {
+      "id": "b1",
+      "text": "量子计算利用量子比特实现并行计算。",
+      "metadata": {
+        "source": "consistency-b"
+      },
+      "score": 0.0328,
+      "rank": 1
+    },
+    "kbATop": {
+      "id": "d4",
+      "text": "云计算平台通过虚拟化技术提供弹性计算资源。",
+      "metadata": {
+        "topic": "cloud",
+        "source": "consistency"
+      },
+      "score": 0.0328,
+      "rank": 1
+    },
+    "leaked": false
+  },
+  "deletion": {
+    "stillListed": false,
+    "lookupAfterDelete": "POST /api/kbs/kb_consistency_b_1793105958_int8/search -> 500: {\"error\":\"Error\",\"message\":\"知识库不存在：kb_consistency_b_179310"
+  }
+}
