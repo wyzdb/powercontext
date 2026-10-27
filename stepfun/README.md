@@ -215,4 +215,4 @@ stepfun/
 - Windows 原生嵌入式不可用；WSL 退出时 seekdb 偶发线程告警。
 - 未做多用户、权限、分布式 seekdb；这是个人知识库，不是生产系统。
 
-更完整的设计判断见 [TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md)，接口与表结构见 [ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+更完整的设计判断见 [TECHNICAL_REPORT.md](docs/TECHNICAL_REPORT.md)，严格一页的版本见 [ONE_PAGER.md](docs/ONE_PAGER.md)，接口与表结构见 [ARCHITECTURE.md](docs/ARCHITECTURE.md)。

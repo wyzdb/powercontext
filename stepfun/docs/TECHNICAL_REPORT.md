@@ -2,6 +2,8 @@
 
 **摘要** 本文实现一个完全在浏览器内完成文档/查询向量化的个人知识库：Transformers.js 加载 bge-small-zh-v1.5，WebGPU 优先、WASM 自动降级；向量、原文与元数据写入 seekdb；向量与全文的融合由 seekdb 的 `DBMS_HYBRID_SEARCH` 在一条 SQL 内用 RRF 完成。工程上把三条约束做成了可检查的证据：Node 侧无模型依赖、SQL trace 可回放、刷新前后可检索性有对照实验。
 
+> 严格一页版见 [`ONE_PAGER.md`](ONE_PAGER.md)；本文是完整版，包含方法、数据与限制。
+
 ## 1 模型与量化
 
 模型为 `BAAI/bge-small-zh-v1.5`（MIT），使用 `Xenova/bge-small-zh-v1.5` 的 ONNX 转换，revision `75c43b06…`；512 维、最大 512 token，CLS pooling（BGE 官方配置）+ L2 normalize。查询侧加 BGE 中文检索指令“为这个句子生成表示以用于检索相关文章：”，文档侧不加；这是模型卡推荐用法，本文没有单独做 instruction 消融。选它而不是 all-MiniLM-L6-v2（中文弱）或 bge-m3（568M，端侧过重），是在中文质量、首屏体积和浏览器内存之间的折中。
