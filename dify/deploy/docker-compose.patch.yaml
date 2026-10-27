@@ -1,0 +1,12 @@
+services:
+  # 把修好的 oceanbase_vector.py 挂进三个会用向量库的容器
+  # 用法：docker compose -f docker-compose.yaml -f docker-compose.seekdb.yaml -f docker-compose.patch.yaml up -d api worker worker_beat
+  api:
+    volumes:
+      - ./patched/oceanbase_vector.py:/app/api/core/rag/datasource/vdb/oceanbase/oceanbase_vector.py:ro
+  worker:
+    volumes:
+      - ./patched/oceanbase_vector.py:/app/api/core/rag/datasource/vdb/oceanbase/oceanbase_vector.py:ro
+  worker_beat:
+    volumes:
+      - ./patched/oceanbase_vector.py:/app/api/core/rag/datasource/vdb/oceanbase/oceanbase_vector.py:ro

@@ -1,0 +1,28 @@
+# 与 Dify 官方 docker-compose.yaml 叠加使用（把本文件放到 dify/docker/ 下）：
+#   cd /opt/dify/docker
+#   docker compose -f docker-compose.yaml -f docker-compose.seekdb.yaml up -d
+#
+# 前置：.env 中设置
+#   COMPOSE_PROFILES=            # 必须清空，否则会拉起自带的 oceanbase-ce
+#   VECTOR_STORE=oceanbase
+#   OCEANBASE_VECTOR_HOST=seekdb
+#
+# 说明：本服务不声明 networks，默认加入当前 compose 项目的 default 网络，
+# 因此 Dify 的 api/worker 容器可以直接用主机名 seekdb 访问它。
+
+services:
+  seekdb:
+    image: oceanbase/seekdb:latest
+    container_name: seekdb
+    restart: always
+    environment:
+      ROOT_PASSWORD: "${OCEANBASE_VECTOR_PASSWORD:-seekdb123}"
+      MEMORY_LIMIT: "${OCEANBASE_MEMORY_LIMIT:-2G}"
+      # 数据盘 / 日志盘按机器规格调整；4G 内存机器建议全部下调
+      DATAFILE_SIZE: "${SEEKDB_DATAFILE_SIZE:-2G}"
+      LOG_DISK_SIZE: "${SEEKDB_LOG_DISK_SIZE:-2G}"
+    volumes:
+      - ./volumes/seekdb:/var/lib/oceanbase
+    ports:
+      # 默认只在本机暴露，便于宿主机用 mysql 客户端核对数据
+      - "127.0.0.1:${OCEANBASE_VECTOR_PORT:-2881}:2881"
