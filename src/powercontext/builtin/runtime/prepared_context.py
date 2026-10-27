@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
@@ -180,6 +181,7 @@ class ContextFragment:
     start: int
     end: int
     text: str
+    whole: bool = False
 
 
 @dataclass(frozen=True)
@@ -367,23 +369,42 @@ class PreparedContextBuilder:
     ) -> list[ContextFragment]:
         terms = _selection_terms(query)
         query_lower = query.casefold()
+        sentence_terms: list[set[str]] = []
+        for group in memory_candidates:
+            for hit in group.hits:
+                if hit.memory_ref is None or not hit.text:
+                    continue
+                for start, end in _sentence_spans(hit.text):
+                    sentence_terms.append(set(_selection_terms(hit.text[start:end])))
+        document_frequency: dict[str, int] = {}
+        for terms_in_sentence in sentence_terms:
+            for term in terms_in_sentence:
+                document_frequency[term] = document_frequency.get(term, 0) + 1
+        sentence_count = max(1, len(sentence_terms))
         scored_fragments: list[tuple[float, int, ContextFragment]] = []
         for group in memory_candidates:
             for rank, hit in enumerate(group.hits):
                 if hit.memory_ref is None or not hit.text:
                     continue
-                scored: list[tuple[int, int, int]] = []
-                for start, end in _sentence_spans(hit.text):
+                scored: list[tuple[float, int, int]] = []
+                spans = _sentence_spans(hit.text)
+                span_index: dict[tuple[int, int], int] = {}
+                for index, (start, end) in enumerate(spans):
+                    span_index[(start, end)] = index
                     sentence = hit.text[start:end].casefold()
-                    score = sum(1 for term in terms if term in sentence)
+                    sentence_terms_set = set(_selection_terms(hit.text[start:end]))
+                    score = sum(
+                        math.log(1 + sentence_count / (1 + document_frequency.get(term, 0)))
+                        for term in terms
+                        if term in sentence_terms_set
+                    )
                     if query_lower and query_lower in sentence:
                         score += 3
-                    if score > 0:
-                        scored.append((score, start, end))
+                    scored.append((score, start, end))
                 if not scored:
                     scored = [(1, 0, min(len(hit.text), 400))]
                 scored.sort(key=lambda item: (-item[0], item[1]))
-                selected = sorted(scored[:4], key=lambda item: item[1])
+                selected = list(scored)
                 merged: list[tuple[int, int, int]] = []
                 for score, start, end in selected:
                     if merged and start <= merged[-1][1] + 2:
@@ -396,9 +417,12 @@ class PreparedContextBuilder:
                     entry_id=hit.entry_id,
                     entry_version_id=hit.entry_version_id,
                 )
+                document_score = sum(1 for term in terms if term in hit.text.casefold())
+                whole = ContextFragment(address=address, start=0, end=len(hit.text), text=hit.text, whole=True)
+                scored_fragments.append((2000 + document_score * 10 - rank, rank, whole))
                 for start, end, score in merged:
                     fragment = ContextFragment(address=address, start=start, end=end, text=hit.text[start:end])
-                    scored_fragments.append((score + 0.01 / (rank + 1), rank, fragment))
+                    scored_fragments.append((1000 + document_score * 10 + score - rank, rank, fragment))
         scored_fragments.sort(key=lambda item: (-item[0], item[1], item[2].start))
         return [fragment for _score, _rank, fragment in scored_fragments]
 
@@ -410,6 +434,8 @@ class PreparedContextBuilder:
     ) -> ContextFragment | None:
         if len(self._render_selection((*included, fragment)).encode("utf-8")) <= request.max_bytes:
             return fragment
+        if fragment.whole:
+            return None
         low, high = fragment.start + 1, fragment.end
         best: ContextFragment | None = None
         while low <= high:
