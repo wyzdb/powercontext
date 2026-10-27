@@ -12,6 +12,12 @@ import { pipeline } from "node:stream/promises";
 const MODEL_ID = "Xenova/bge-small-zh-v1.5";
 const REVISION = "75c43b069aac4d136ba6bc1122f995fedcfd2781";
 const ENDPOINT = (process.env.HF_ENDPOINT ?? "https://huggingface.co").replace(/\/$/, "");
+const ENDPOINTS = [ENDPOINT];
+// In mainland China the canonical endpoint is often slow/unreachable. Keep the
+// mirror as a fallback only when the caller did not choose a custom endpoint.
+if (ENDPOINT === "https://huggingface.co") {
+  ENDPOINTS.push("https://hf-mirror.com");
+}
 const TARGET = path.resolve("public/models", MODEL_ID);
 
 const FILES = [
@@ -34,20 +40,32 @@ async function sha256File(file) {
 
 async function download(file) {
   const destination = path.join(TARGET, file.file);
-  const response = await fetch(
-    `${ENDPOINT}/${MODEL_ID}/resolve/${REVISION}/${file.file}`,
-    { redirect: "follow" },
-  );
-  if (!response.ok || !response.body) {
-    throw new Error(`${file.file}: HTTP ${response.status}`);
-  }
   await mkdir(path.dirname(destination), { recursive: true });
   const temporary = `${destination}.part`;
-  await pipeline(
-    Readable.fromWeb(response.body),
-    createWriteStream(temporary),
-  );
-  await rename(temporary, destination);
+  const errors = [];
+
+  for (const endpoint of ENDPOINTS) {
+    try {
+      const response = await fetch(
+        `${endpoint}/${MODEL_ID}/resolve/${REVISION}/${file.file}`,
+        { redirect: "follow", signal: AbortSignal.timeout(300_000) },
+      );
+      if (!response.ok || !response.body) {
+        errors.push(`${endpoint}: HTTP ${response.status}`);
+        continue;
+      }
+      await pipeline(
+        Readable.fromWeb(response.body),
+        createWriteStream(temporary),
+      );
+      await rename(temporary, destination);
+      return;
+    } catch (error) {
+      errors.push(`${endpoint}: ${String(error)}`);
+    }
+  }
+
+  throw new Error(`${file.file}: download failed (${errors.join("; ")})`);
 }
 
 for (const file of FILES) {
