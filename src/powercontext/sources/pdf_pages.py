@@ -204,7 +204,10 @@ async def search_pdf_pages(
         )
         for _score, _order, hit in ranked
     ]
-    pages, page_citations = await _page_map(memory)
+    try:
+        pages, page_citations = await _page_map(memory)
+    except Exception:
+        return tuple(citations[:limit])
     if not pages:
         return tuple(citations[:limit])
 
@@ -236,10 +239,16 @@ async def _page_map(
 ]:
     """Map Memory citations to physical PDF pages through their Source identities."""
 
-    cached = getattr(memory, "_pdf_page_citation_map", None)
+    try:
+        cached = getattr(memory, "_pdf_page_citation_map", None)
+    except Exception:
+        cached = None
     if cached is not None:
         return cached
-    entries = await memory.list()
+    try:
+        entries = await memory.list()
+    except Exception:
+        return {}, {}
     by_citation: dict[tuple[str, str], int] = {}
     by_page: dict[int, MemoryCitation] = {}
     for record in entries.entries:
@@ -261,7 +270,10 @@ async def _page_map(
             continue
         by_citation[(citation.entry_id, citation.entry_version_id)] = page
         by_page[page] = citation
-    setattr(memory, "_pdf_page_citation_map", (by_citation, by_page))
+    try:
+        setattr(memory, "_pdf_page_citation_map", (by_citation, by_page))
+    except Exception:
+        pass
     return by_citation, by_page
 
 
