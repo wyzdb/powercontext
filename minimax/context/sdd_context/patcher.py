@@ -216,7 +216,9 @@ def apply_patch(patch_text: str, root: Path, *, dry_run: bool = False) -> list[F
             new_text += "\n"
         after_sha = hashlib.sha256(new_text.encode("utf-8")).hexdigest()
         if not dry_run:
-            target.write_text(new_text, encoding="utf-8")
+            # Write LF explicitly so snapshot hashes match the bytes recorded
+            # in the run log regardless of the host platform.
+            target.write_text(new_text, encoding="utf-8", newline="\n")
         changes.append(
             FileChange(
                 path=relative,

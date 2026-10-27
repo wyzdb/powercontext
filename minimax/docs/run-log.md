@@ -40,7 +40,7 @@
 | `src/orderflow/api.py` | +5 / -0 | `98bf3db08ee370a8` | `2e289b947f381095` |
 | `src/orderflow/service.py` | +16 / -0 | `326f3e4f4512b00e` | `fa39a57c844d1573` |
 
-`artifacts/change.diff`：2886 字节，sha256 前 16 位 `4a03a3c56ed12853`。
+`artifacts/change.diff`：2801 字节（LF 换行），sha256 前 16 位 `45b4f2054a90b290`（可直接对仓库内文件校验）。
 修改前快照在 `artifacts/before/`，修改后快照在 `artifacts/after/`，
 两者可用 `python scripts/sdd.py reset-sample` 与 `artifacts/change.diff` 复核。
 
