@@ -1,0 +1,122 @@
+[
+  {
+    "id": "q01",
+    "query": "为什么小批量 GPU 推理不一定快？",
+    "type": "semantic",
+    "qrels": { "webgpu": 2, "wasm": 1 }
+  },
+  {
+    "id": "q02",
+    "query": "HNSW 的 m 和 ef_search 参数影响什么？",
+    "type": "lexical",
+    "qrels": { "hnsw": 2, "seekdb": 1 }
+  },
+  {
+    "id": "q03",
+    "query": "倒数排名融合的公式是什么？",
+    "type": "lexical",
+    "qrels": { "rrf": 2, "hybrid-search": 1 }
+  },
+  {
+    "id": "q04",
+    "query": "INT8 量化为什么会改变向量方向？",
+    "type": "semantic",
+    "qrels": { "quantization": 2, "wasm": 1 }
+  },
+  {
+    "id": "q05",
+    "query": "都江堰的鱼嘴有什么作用？",
+    "type": "lexical",
+    "qrels": { "dujiangyan": 2 }
+  },
+  {
+    "id": "q06",
+    "query": "潮汐为什么在农历初一十五更大？",
+    "type": "semantic",
+    "qrels": { "tide": 2 }
+  },
+  {
+    "id": "q07",
+    "query": "马拉松比赛中怎样延缓撞墙？",
+    "type": "semantic",
+    "qrels": { "marathon-fuel": 2 }
+  },
+  {
+    "id": "q08",
+    "query": "城市热岛效应可以怎么缓解？",
+    "type": "semantic",
+    "qrels": { "urban-heat": 2 }
+  },
+  {
+    "id": "q09",
+    "query": "光合作用的暗反应发生在哪里？",
+    "type": "lexical",
+    "qrels": { "photosynthesis": 2 }
+  },
+  {
+    "id": "q10",
+    "query": "长城是哪个朝代修建的？",
+    "type": "semantic",
+    "qrels": { "great-wall": 2 }
+  },
+  {
+    "id": "q11",
+    "query": "浅烘和深烘咖啡有什么区别？",
+    "type": "semantic",
+    "qrels": { "coffee-roast": 2 }
+  },
+  {
+    "id": "q12",
+    "query": "酸奶和面包的发酵原理",
+    "type": "semantic",
+    "qrels": { "fermentation": 2 }
+  },
+  {
+    "id": "q13",
+    "query": "深睡眠集中在夜间什么时候？",
+    "type": "semantic",
+    "qrels": { "sleep-cycle": 2 }
+  },
+  {
+    "id": "q14",
+    "query": "光污染对鸟类和海龟有什么影响？",
+    "type": "lexical",
+    "qrels": { "light-pollution": 2 }
+  },
+  {
+    "id": "q15",
+    "query": "RAG 为什么强调检索质量？",
+    "type": "semantic",
+    "qrels": { "rag": 2, "hybrid-search": 1 }
+  },
+  {
+    "id": "q16",
+    "query": "seekdb 用什么存储过程做混合检索？",
+    "type": "lexical",
+    "qrels": { "seekdb": 2, "hnsw": 1 }
+  },
+  {
+    "id": "q17",
+    "query": "Transformer 自注意力的计算量为什么随长度平方增长？",
+    "type": "semantic",
+    "qrels": { "transformer-attention": 2 }
+  },
+  {
+    "id": "q18",
+    "query": "中文分词对全文检索召回有什么影响？",
+    "type": "semantic",
+    "qrels": { "ik-tokenizer": 2 }
+  },
+  {
+    "id": "q19",
+    "query": "混合检索适合哪些查询？",
+    "type": "semantic",
+    "qrels": { "hybrid-search": 2, "rrf": 1 }
+  },
+  {
+    "id": "q20",
+    "query": "WebAssembly 多线程需要什么页面条件？",
+    "type": "lexical",
+    "qrels": { "wasm": 2, "webgpu": 1 }
+  }
+]

@@ -26,6 +26,7 @@ interface LoadedEmbedder {
 }
 
 export const MODEL_ID = "Xenova/bge-small-zh-v1.5";
+export const QUERY_INSTRUCTION = "为这个句子生成表示以用于检索相关文章：";
 
 env.allowLocalModels = true;
 env.localModelPath = "/models/";

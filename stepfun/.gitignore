@@ -16,6 +16,7 @@ dist-ssr
 .seekdb-data
 public/models
 public/ort
+.env
 _*.json
 *.tsbuildinfo
 

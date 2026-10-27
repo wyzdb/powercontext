@@ -9,13 +9,12 @@ import {
 import {
   embed,
   loadEmbedder,
+  QUERY_INSTRUCTION,
   type BackendDevice,
   type Dtype,
   type ProgressInfo,
 } from "../lib/embedder";
 import { probeWebGPU, type GpuProbe } from "../lib/gpu";
-
-export const QUERY_INSTRUCTION = "为这个句子生成表示以用于检索相关文章：";
 
 export interface ModelChoice {
   device: BackendDevice;

@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import fastifyStatic from "@fastify/static";
@@ -37,6 +38,15 @@ app.setErrorHandler((error, request, reply) => {
     error: err.name ?? "Error",
     message: err.message,
   });
+});
+
+// Multi-threaded WASM needs cross-origin isolation. The app currently runs
+// ORT with one thread, but keeping the headers makes the production server
+// behave the same as the Vite dev server.
+app.addHook("onSend", async (_request, reply, payload) => {
+  reply.header("Cross-Origin-Opener-Policy", "same-origin");
+  reply.header("Cross-Origin-Embedder-Policy", "require-corp");
+  return payload;
 });
 
 await registerRoutes(app);

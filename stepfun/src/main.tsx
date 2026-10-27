@@ -2,15 +2,18 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
+import BenchRun from "./benchrun/BenchRun.tsx";
 import { ModelProvider } from "./model/ModelContext.tsx";
 import Spike from "./spike/Spike.tsx";
 
-const isSpike = window.location.pathname.replace(/\/$/, "") === "/spike";
+const path = window.location.pathname.replace(/\/$/, "");
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    {isSpike ? (
+    {path === "/spike" ? (
       <Spike />
+    ) : path === "/benchrun" ? (
+      <BenchRun />
     ) : (
       <ModelProvider>
         <App />

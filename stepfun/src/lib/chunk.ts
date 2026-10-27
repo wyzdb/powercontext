@@ -106,6 +106,7 @@ export async function buildChunks(
       id: `${doc.id}-${index}-${digest.slice(0, 10)}`,
       text,
       metadata: {
+        docId: doc.id,
         source: doc.source ?? doc.title,
         title: doc.title,
         chunk: index,

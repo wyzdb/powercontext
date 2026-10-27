@@ -12,18 +12,25 @@ if [[ -d "${HOME}/.local/node22/bin" ]]; then
   export PATH="${HOME}/.local/node22/bin:${PATH}"
 fi
 
-if [[ "$(uname -s)" == "Darwin" ]]; then
-  LIB="$(find "${HOME}/.seekdb/bindings" -name 'libseekdb.dylib' 2>/dev/null | head -n 1 || true)"
-  if [[ -n "${LIB}" && -z "${DYLD_INSERT_LIBRARIES:-}" ]]; then
-    export DYLD_INSERT_LIBRARIES="${LIB}"
-  fi
-else
-  LIB="$(find "${HOME}/.seekdb/bindings" -name 'libseekdb.so' 2>/dev/null | head -n 1 || true)"
-  if [[ -n "${LIB}" && -z "${LD_PRELOAD:-}" ]]; then
-    export LD_PRELOAD="${LIB}"
+export SEEKDB_MODE="${SEEKDB_MODE:-embedded}"
+export PORT="${PORT:-8787}"
+
+if [[ "${SEEKDB_MODE}" == "embedded" ]]; then
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    LIB="$(find "${HOME}/.seekdb/bindings" -name 'libseekdb.dylib' 2>/dev/null | head -n 1 || true)"
+    if [[ -n "${LIB}" && -z "${DYLD_INSERT_LIBRARIES:-}" ]]; then
+      export DYLD_INSERT_LIBRARIES="${LIB}"
+    fi
+  else
+    LIB="$(find "${HOME}/.seekdb/bindings" -name 'libseekdb.so' 2>/dev/null | head -n 1 || true)"
+    if [[ -n "${LIB}" && -z "${LD_PRELOAD:-}" ]]; then
+      export LD_PRELOAD="${LIB}"
+    fi
   fi
 fi
 
-export SEEKDB_MODE="${SEEKDB_MODE:-embedded}"
-export PORT="${PORT:-8787}"
-exec node_modules/.bin/tsx server/index.ts
+if [[ "${WATCH:-0}" == "1" ]]; then
+  exec node_modules/.bin/tsx watch server/index.ts
+else
+  exec node_modules/.bin/tsx server/index.ts
+fi
