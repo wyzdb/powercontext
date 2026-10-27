@@ -1178,6 +1178,35 @@ RECURRENCE_OBSERVATION_TABLE = Table(
     ),
 )
 
+SOURCE_LIFECYCLE_NODES_TABLE = Table(
+    "pc_source_lifecycle_nodes",
+    SHARED_METADATA,
+    Column("scope_id", identity_string(MAX_SCOPE_ID_LENGTH), primary_key=True),
+    Column("node_id", identity_string(MAX_SOURCE_ID_LENGTH), primary_key=True),
+    Column("family", String(16), nullable=False),
+    Column("payload", Text, nullable=False),
+    Column("active", Boolean, nullable=False),
+    Column("ordinal", Integer, nullable=False, default=0),
+    Column("last_sequence", Integer, nullable=False, default=0),
+    Column("last_digest", String(64), nullable=True),
+    Column("artifact_family", identity_string(MAX_ARTIFACT_FAMILY_LENGTH), nullable=True),
+    Column("artifact_id", identity_string(MAX_ARTIFACT_ID_LENGTH), nullable=True),
+    Column("artifact_revision", Integer, nullable=True),
+    Index("ix_pc_source_lifecycle_artifact", "scope_id", "artifact_family", "artifact_id", "artifact_revision"),
+)
+
+SOURCE_LIFECYCLE_EVENTS_TABLE = Table(
+    "pc_source_lifecycle_events",
+    SHARED_METADATA,
+    Column("scope_id", identity_string(MAX_SCOPE_ID_LENGTH), primary_key=True),
+    Column("node_id", identity_string(MAX_SOURCE_ID_LENGTH), primary_key=True),
+    Column("sequence", Integer, primary_key=True),
+    Column("digest", String(64), nullable=False),
+    Column("payload", Text, nullable=False),
+)
+
+SOURCE_LIFECYCLE_TABLES = (SOURCE_LIFECYCLE_NODES_TABLE, SOURCE_LIFECYCLE_EVENTS_TABLE)
+
 RECURRENCE_TABLES = (RECURRENCE_MATCH_TABLE, RECURRENCE_OBSERVATION_TABLE)
 
 BUILTIN_TABLES = (
@@ -1187,5 +1216,6 @@ BUILTIN_TABLES = (
     + MEMORY_TABLES
     + STATISTICS_TABLES
     + RECURRENCE_TABLES
+    + SOURCE_LIFECYCLE_TABLES
     + (ARTIFACT_TAGS_TABLE, DREAM_RUNS_TABLE, RECEIPT_MIGRATION_REVIEW_TABLE)
 )

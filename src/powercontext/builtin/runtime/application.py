@@ -214,6 +214,7 @@ from powercontext.builtin.runtime.models import (
     TopicMemoryFlushResult,
 )
 from powercontext.builtin.runtime.context_pack import ContextPack, ContextPackDelta, ContextPackError
+from powercontext.builtin.runtime.source_lifecycle import SourceLifecycleApplication
 from powercontext.builtin.runtime.prepared_code import PreparedCodeCandidate, code_candidates
 from powercontext.builtin.runtime.prepared_context import (
     PreparedContextBuild,
@@ -2685,6 +2686,9 @@ class ScopedTopicMemoryApplication:
                     query_embedding,
                     embedding_timeout_seconds,
                 )
+        filtered = await self._runtime.lifecycle.for_scope(self.scope_id).filter_topic_hits(result.hits)
+        if len(filtered) != len(result.hits):
+            result = result.model_copy(update={"hits": filtered})
         observer = self._runtime._topic_memory_search_observer
         if observer is not None:
             try:
@@ -2995,6 +2999,7 @@ class BuiltinRuntime:
         *,
         provider: PowerContextProvider[BuiltinSources, BuiltinArtifacts, BuiltinTriggers],
         capabilities: RuntimeCapabilities,
+        database: Any | None = None,
         code_service: CodeService | None = None,
         source_window_limit: int = 100,
         context_assembly_max_entries: int = 8,
@@ -3053,6 +3058,7 @@ class BuiltinRuntime:
         if scope_cache_size < 1:
             raise _RuntimeConfigurationError("scope_cache_size")
         self._provider = provider
+        self._database = database
         self._capabilities = capabilities
         self._review_service = review_service
         self.profiles = profiles
@@ -3128,6 +3134,7 @@ class BuiltinRuntime:
         self.work = WorkApplication(self)
         self.memory = MemoryApplication(self)
         self.topic_memory = TopicMemoryApplication(self)
+        self.lifecycle = SourceLifecycleApplication(self)
         self.records = RecordApplication(self)
         self.prompts = PromptApplication(self)
         self.review = ReviewApplication(self)
