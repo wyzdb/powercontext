@@ -1,0 +1,4 @@
+﻿PowerContext Memory scope: researchflow-profile
+WRITE RESEARCHFLOW_PROFILE:{"interests":["retrieval","memory"],"stage":"文献调研","goal":"完成 retrieval baseline 的消融实验","user_id":"demo-researcher"}
+RESTART -> READ RESEARCHFLOW_PROFILE:{"interests":["retrieval","memory"],...}
+RECOMMEND note-002, note-006, note-003 using restored profile
