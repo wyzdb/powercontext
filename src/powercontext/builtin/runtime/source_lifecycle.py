@@ -159,7 +159,6 @@ class ScopedSourceLifecycle:
         if not isinstance(event, SourceLifecycleEvent):
             raise SourceLifecycleError("event must be a SourceLifecycleEvent")
         digest = _event_digest(event)
-        changed_memory: list[tuple[dict[str, Any], bool]] = []
         async with self._database().transaction() as connection:
                 nodes = await self._load_nodes(connection)
                 node = nodes.get(event.node_id)
@@ -220,10 +219,14 @@ class ScopedSourceLifecycle:
                     )
 
                 recomputed = _recompute(nodes)
+                reconcile_memory = [
+                    (node.payload, recomputed[node_id])
+                    for node_id, node in nodes.items()
+                    if node.kind == "memory"
+                ]
                 for node_id, active in recomputed.items():
                     current = nodes[node_id]
                     if current.active != active:
-                        changed_memory.append((current.payload, active)) if current.kind == "memory" else None
                         await connection.execute(
                             update(SOURCE_LIFECYCLE_NODES_TABLE)
                             .where(
@@ -232,8 +235,7 @@ class ScopedSourceLifecycle:
                             )
                             .values(active=active)
                         )
-        for payload, active in changed_memory:
-            await self._set_memory_state(payload, active)
+        await self._reconcile_memory(reconcile_memory)
 
         async with self._database().transaction() as connection:
                 nodes = await self._load_nodes(connection)
@@ -344,6 +346,31 @@ class ScopedSourceLifecycle:
             )
             for row in rows
         }
+
+    async def _reconcile_memory(self, states: list[tuple[dict[str, Any], bool]]) -> None:
+        if not states:
+            return
+        async with self._runtime._context(self.scope_id) as context:
+            service = context.artifacts.memory
+            memory, entries = await service.head_entries(context.artifacts.memory_artifact_id)
+            versions = {entry.entry_id: entry for entry in entries}
+            states_by_entry = {item.entry_id: item.state for item in memory.content.manifest.entries}
+            deactivate = []
+            activate = []
+            for payload, active in states:
+                citation = MemoryCitation.model_validate(payload["citation"])
+                entry = versions.get(citation.entry_id)
+                if entry is None:
+                    raise SourceLifecycleError("Memory entry no longer exists")
+                current = states_by_entry.get(citation.entry_id)
+                if current == "active" and not active:
+                    deactivate.append(entry)
+                elif current == "inactive" and active:
+                    activate.append(entry)
+            if deactivate:
+                memory = await service.forget(memory, entries=tuple(deactivate), reason="Source lifecycle")
+            if activate:
+                await service.reactivate(memory, entries=tuple(activate), reason="Source lifecycle")
 
     async def _set_memory_state(self, payload: dict[str, Any], active: bool) -> None:
         citation = MemoryCitation.model_validate(payload["citation"])
