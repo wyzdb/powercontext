@@ -400,18 +400,12 @@ class PreparedContextBuilder:
                     )
                     if query_lower and query_lower in sentence:
                         score += 3
+                    score += 4.0 * start / max(1, len(hit.text))
                     scored.append((score, start, end))
                 if not scored:
                     scored = [(1, 0, min(len(hit.text), 400))]
                 scored.sort(key=lambda item: (-item[0], item[1]))
                 selected = list(scored)
-                merged: list[tuple[int, int, int]] = []
-                for score, start, end in selected:
-                    if merged and start <= merged[-1][1] + 2:
-                        previous_start, previous_end, previous_score = merged[-1]
-                        merged[-1] = (previous_start, max(previous_end, end), max(previous_score, score))
-                    else:
-                        merged.append((start, end, score))
                 address = MemoryEntryAddress(
                     memory=ArtifactAddress(scope_id=group.scope_id, artifact=hit.memory_ref),
                     entry_id=hit.entry_id,
@@ -420,7 +414,7 @@ class PreparedContextBuilder:
                 document_score = sum(1 for term in terms if term in hit.text.casefold())
                 whole = ContextFragment(address=address, start=0, end=len(hit.text), text=hit.text, whole=True)
                 scored_fragments.append((2000 + document_score * 10 - rank, rank, whole))
-                for start, end, score in merged:
+                for score, start, end in selected:
                     fragment = ContextFragment(address=address, start=start, end=end, text=hit.text[start:end])
                     scored_fragments.append((1000 + document_score * 10 + score - rank, rank, fragment))
         scored_fragments.sort(key=lambda item: (-item[0], item[1], item[2].start))
