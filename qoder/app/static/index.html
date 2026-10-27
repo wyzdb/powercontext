@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ResearchFlow · 研途</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <p class="eyebrow">Qoder × seekdb × PowerContext</p>
+      <h1>研途 ResearchFlow</h1>
+      <p class="lede">把论文笔记、实验记录和组会待办放进一个可检索的研究空间；记住你的方向与进度，下次打开直接继续。</p>
+      <div class="pills">
+        <span>seekdb 资料检索</span><span>PowerContext 研究记忆</span><span>本地可运行</span>
+      </div>
+    </header>
+
+    <section class="panel">
+      <h2>1. 检索研究资料</h2>
+      <form id="search-form">
+        <input id="query" placeholder="例如：transformer attention 或 RAG 实验" required>
+        <button>检索</button>
+      </form>
+      <div id="search-source" class="source"></div>
+      <ul id="results"></ul>
+    </section>
+
+    <section class="panel">
+      <h2>2. 保存研究画像</h2>
+      <form id="profile-form">
+        <input id="user" value="demo-researcher" placeholder="用户 ID" required>
+        <input id="interests" value="retrieval, memory" placeholder="兴趣，用逗号分隔" required>
+        <input id="stage" value="文献调研" placeholder="当前阶段">
+        <input id="goal" value="完成 retrieval baseline 的消融实验" placeholder="下一步目标">
+        <button>保存到 PowerContext</button>
+      </form>
+      <div id="profile-source" class="source"></div>
+    </section>
+
+    <section class="panel">
+      <h2>3. 基于记忆推荐</h2>
+      <form id="recommend-form">
+        <input id="recommend-user" value="demo-researcher">
+        <button>读取记忆并推荐</button>
+      </form>
+      <div id="recommend-source" class="source"></div>
+      <ul id="recommendations"></ul>
+    </section>
+
+    <footer>
+      研究资料来自本地样例；检索由 seekdb 表查询完成，偏好与进度由 PowerContext Memory 保存。
+    </footer>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
