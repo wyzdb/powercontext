@@ -1,10 +1,20 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.tsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import App from "./App.tsx";
+import { ModelProvider } from "./model/ModelContext.tsx";
+import Spike from "./spike/Spike.tsx";
 
-createRoot(document.getElementById('root')!).render(
+const isSpike = window.location.pathname.replace(/\/$/, "") === "/spike";
+
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <App />
+    {isSpike ? (
+      <Spike />
+    ) : (
+      <ModelProvider>
+        <App />
+      </ModelProvider>
+    )}
   </StrictMode>,
-)
+);

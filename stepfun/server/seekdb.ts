@@ -389,7 +389,7 @@ export async function addDocs(
   const batchSize = 64;
   for (let offset = 0; offset < docs.length; offset += batchSize) {
     const batch = docs.slice(offset, offset + batchSize);
-    await collection.add({
+    await collection.upsert({
       ids: batch.map((doc) => doc.id),
       embeddings: batch.map((doc) => doc.embedding),
       documents: batch.map((doc) => doc.text),

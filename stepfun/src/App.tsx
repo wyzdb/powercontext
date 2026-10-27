@@ -1,122 +1,153 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useCallback, useEffect, useMemo, useState } from "react";
+import AboutPanel from "./components/AboutPanel";
+import BackendBadge from "./components/BackendBadge";
+import BenchmarkPanel from "./components/BenchmarkPanel";
+import ImportPanel from "./components/ImportPanel";
+import SearchPanel from "./components/SearchPanel";
+import Sidebar from "./components/Sidebar";
+import { api, type Health, type KbRecord } from "./lib/api";
+import { MODEL_ID } from "./lib/embedder";
+import { useModel } from "./model/ModelContext";
 
-function App() {
-  const [count, setCount] = useState(0)
+type Tab = "kb" | "search" | "bench" | "about";
+
+const TABS: Array<{ id: Tab; label: string }> = [
+  { id: "kb", label: "语料与导入" },
+  { id: "search", label: "检索" },
+  { id: "bench", label: "基准" },
+  { id: "about", label: "方法" },
+];
+
+export default function App() {
+  const model = useModel();
+  const [health, setHealth] = useState<Health | null>(null);
+  const [kbs, setKbs] = useState<KbRecord[]>([]);
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("kb");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    const [nextHealth, list] = await Promise.all([
+      api.health(),
+      api.listKbs().catch(() => ({ kbs: [] as KbRecord[] })),
+    ]);
+    setHealth(nextHealth);
+    setKbs(list.kbs);
+    setCurrentId((previous) => {
+      if (previous && list.kbs.some((kb) => kb.id === previous)) return previous;
+      return list.kbs[0]?.id ?? null;
+    });
+  }, []);
+
+  useEffect(() => {
+    refresh()
+      .catch((loadError) => setError(String(loadError)))
+      .finally(() => setLoading(false));
+  }, [refresh]);
+
+  const currentKb = useMemo(
+    () => kbs.find((kb) => kb.id === currentId) ?? null,
+    [kbs, currentId],
+  );
+
+  const createKb = async (name: string) => {
+    const choice = await model.ensure();
+    const kb = await api.createKb({
+      name,
+      modelId: MODEL_ID,
+      dim: 512,
+      dtype: choice.dtype as "fp32" | "int8" | "fp16",
+    });
+    await refresh();
+    setCurrentId(kb.id);
+    setTab("kb");
+  };
+
+  const deleteKb = async (id: string) => {
+    await api.deleteKb(id);
+    await refresh();
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar
+        kbs={kbs}
+        currentId={currentId}
+        loading={loading}
+        health={health}
+        onSelect={(id) => setCurrentId(id)}
+        onCreate={createKb}
+        onDelete={deleteKb}
+      />
 
-      <div className="ticks"></div>
+      <main className="flex min-w-0 flex-1 flex-col">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-line)] bg-[#faf8f2]/80 px-7 py-4 backdrop-blur">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-muted)]">
+              on-device embedding · db-side hybrid retrieval
+            </p>
+            <div className="mt-1 flex items-baseline gap-3">
+              <h1 className="serif text-[24px] leading-none">个人知识库</h1>
+              <span className="truncate text-[11.5px] text-[var(--color-muted)]">
+                {currentKb ? currentKb.name : "未选择知识库"}
+              </span>
+            </div>
+          </div>
+          <BackendBadge />
+        </header>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <nav className="flex gap-1 border-b border-[var(--color-line)] px-7">
+          {TABS.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setTab(item.id)}
+              className={`border-b-2 px-3 py-2.5 text-[12.5px] transition ${
+                tab === item.id
+                  ? "border-[var(--color-accent)] font-semibold text-[var(--color-ink)]"
+                  : "border-transparent text-[var(--color-muted)] hover:text-[var(--color-ink)]"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+          <span className="mono ml-auto self-center text-[10px] text-[var(--color-muted)]">
+            {currentKb ? `${currentKb.count} chunks · ${currentKb.dtype}` : ""}
+          </span>
+        </nav>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        <div className="scroll-thin flex-1 overflow-y-auto px-7 py-6">
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[12px] text-[var(--color-danger)]">
+              {error}
+            </div>
+          )}
+
+          {health && !health.ok && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[12px] leading-5 text-[var(--color-warn)]">
+              <strong className="font-semibold">seekdb 未连接。</strong>{" "}
+              {health.error}
+              {health.hints && (
+                <details className="mt-1">
+                  <summary className="cursor-pointer">查看启动命令</summary>
+                  <ul className="mono mt-1 space-y-1 text-[10.5px]">
+                    {health.hints.map((hint) => (
+                      <li key={hint}>{hint}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+          )}
+
+          {tab === "kb" && (
+            <ImportPanel kb={currentKb} onImported={refresh} />
+          )}
+          {tab === "search" && <SearchPanel kb={currentKb} />}
+          {tab === "bench" && <BenchmarkPanel />}
+          {tab === "about" && <AboutPanel />}
+        </div>
+      </main>
+    </div>
+  );
 }
-
-export default App
