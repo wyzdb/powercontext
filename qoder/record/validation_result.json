@@ -1,0 +1,27 @@
+{
+  "backend": "sqlite",
+  "seeded": 6,
+  "notes": 6,
+  "search_query": "transformer attention",
+  "search_hits": [
+    "note-001"
+  ],
+  "profile": {
+    "user_id": "demo-researcher",
+    "interests": [
+      "retrieval",
+      "memory"
+    ],
+    "stage": "文献调研",
+    "goal": "完成 retrieval baseline 的消融实验",
+    "source": "powercontext://sqlite/C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\qoder-build\\.qoder\\powercontext.db"
+  },
+  "recommendation_hits": [
+    "note-002",
+    "note-006",
+    "note-003"
+  ],
+  "memory_source": "powercontext://sqlite/C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\qoder-build\\.qoder\\powercontext.db",
+  "notes_source": "sqlite://C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\qoder-build\\.qoder\\researchflow.sqlite3",
+  "state_reused": "完成 retrieval baseline 的消融实验"
+}
