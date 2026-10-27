@@ -1,0 +1,5 @@
+command: python -m pytest tests -q -p no:cacheprovider
+exit: 0
+
+.....................                                                    [100%]
+21 passed in 6.34s

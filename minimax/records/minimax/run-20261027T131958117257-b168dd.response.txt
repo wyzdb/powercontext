@@ -1,0 +1,82 @@
+<<<PATCH
+--- a/src/orderflow/api.py
++++ b/src/orderflow/api.py
+@@ -19,6 +19,7 @@
+         *,
+         status: str | None = None,
+         min_total: str | None = None,
++        created_after: str | None = None,
+         page: str = "1",
+         page_size: str = str(DEFAULT_PAGE_SIZE),
+     ) -> None:
+@@ -26,6 +27,7 @@
+         self.status = status
+         self.min_total = min_total
++        self.created_after = created_after
+         self.page = page
+         self.page_size = page_size
+@@ -37,6 +39,8 @@
+             filters["status"] = self.status
+         if self.min_total is not None:
+             filters["min_total"] = self.min_total
++        if self.created_after is not None:
++            filters["created_after"] = self.created_after
+         return filters
+@@ -54,6 +58,7 @@
+     return ListQuery(
+         status=_single(query, "status"),
+         min_total=_single(query, "min_total"),
++        created_after=_single(query, "created_after"),
+         page=_single(query, "page") or "1",
+         page_size=_single(query, "page_size") or str(DEFAULT_PAGE_SIZE),
+     )
+--- a/src/orderflow/service.py
++++ b/src/orderflow/service.py
+@@ -8,6 +8,7 @@
+ """
+ 
+ from __future__ import annotations
+ 
++from datetime import date
+ import math
+ from collections.abc import Iterable, Sequence
+@@ -80,6 +81,22 @@
+     return minimum
+ 
+ 
++def parse_created_after(value: str) -> date:
++    """Parse the inclusive lower bound on the order creation date."""
++
++    try:
++        return date.fromisoformat(value)
++    except (TypeError, ValueError) as exc:
++        raise QueryError(
++            "invalid_created_after",
++            f"created_after is not a valid YYYY-MM-DD date: {value!r}",
++        ) from exc
++
++
+ def _sort_key(order: Order) -> tuple[int, str]:
+@@ -86,6 +103,7 @@
+     orders: Iterable[Order],
+     *,
+     status: str | None = None,
+     min_total: int | str | None = None,
++    created_after: str | None = None,
+     page: int | str = 1,
+     page_size: int | str = DEFAULT_PAGE_SIZE,
+ ) -> Page:
+@@ -102,6 +120,7 @@
+     size = parse_page_size(page_size)
+     status_token = normalize_status(status) if status is not None else None
+     minimum = parse_min_total(min_total) if min_total is not None else None
++    created_after_date = parse_created_after(created_after) if created_after is not None else None
+ 
+     filtered: Sequence[Order] = [
+@@ -109,6 +128,7 @@
+         for order in orders
+         if (status_token is None or order.status == status_token)
+         and (minimum is None or order.total_cents >= minimum)
++        and (created_after_date is None or order.created_at.date() >= created_after_date)
+     ]
+PATCH>>>

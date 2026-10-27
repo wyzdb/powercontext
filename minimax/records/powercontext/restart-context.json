@@ -1,0 +1,42 @@
+{
+  "captured_at": "2026-10-27T15:09:19.886046+00:00",
+  "context_id": "ctx-20261027T150919886046-9fe92c",
+  "task_id": "task-order-created-after",
+  "state": {
+    "task_id": "task-order-created-after",
+    "title": "reset",
+    "status": "completed",
+    "step": "done",
+    "done": [
+      "上下文 ctx-20261027T132228996188-da7948",
+      "补丁 2 个文件"
+    ],
+    "todo": [],
+    "verifications": [
+      {
+        "run_id": "run-20261027T132226460027-6a9b05",
+        "command": "python -m pytest tests/test_created_after_api.py::test_created_after_combines_with_status_and_paging tests/test_created_after_api.py::test_created_after_filters_orders tests/test_created_after_api.py::test_created_after_includes_the_boundary_day tests/test_created_after_api.py::test_invalid_created_after_returns_400 -q -p no:cacheprovider",
+        "exit_code": 0,
+        "log": "records\\tests\\20261027T132238-target.log"
+      },
+      {
+        "run_id": "run-20261027T132226460027-6a9b05",
+        "command": "python -m pytest tests/test_api_listing.py::test_filters_are_query_parameters tests/test_api_listing.py::test_health_endpoint tests/test_api_listing.py::test_invalid_page_returns_400 tests/test_api_listing.py::test_invalid_status_returns_400 tests/test_api_listing.py::test_orders_response_shape tests/test_api_listing.py::test_oversized_page_size_returns_400 tests/test_api_listing.py::test_unknown_route_returns_404 tests/test_service_listing.py::test_empty_result_reports_zero_pages tests/test_service_listing.py::test_min_total_is_inclusive tests/test_service_listing.py::test_negative_min_total_is_rejected tests/test_service_listing.py::test_ordering_is_total_desc_then_id_asc tests/test_service_listing.py::test_page_bounds_are_validated tests/test_service_listing.py::test_pagination_counts_the_filtered_set tests/test_service_listing.py::test_status_filter_is_case_insensitive tests/test_service_listing.py::test_status_normalisation_strips_and_lowercases tests/test_service_listing.py::test_unknown_status_is_rejected -q -p no:cacheprovider",
+        "exit_code": 0,
+        "log": "records\\tests\\20261027T132244-regression.log"
+      }
+    ],
+    "context_id": "ctx-20261027T132228996188-da7948",
+    "updated_at": "2026-10-27T13:22:44.197562+00:00",
+    "revision": 6
+  },
+  "state_used_in_context": true,
+  "summary": {
+    "spec_clauses": 11,
+    "code_symbols": 14,
+    "change_targets": 4,
+    "target_tests": 4,
+    "regression_tests": 16,
+    "queries": 14
+  }
+}

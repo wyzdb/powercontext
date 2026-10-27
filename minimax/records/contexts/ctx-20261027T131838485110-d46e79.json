@@ -1,0 +1,1290 @@
+{
+  "context_id": "ctx-20261027T131838485110-d46e79",
+  "task_id": "task-order-created-after",
+  "task": "为 orderflow 的订单列表接口增加按创建时间筛选能力：GET /orders 支持 created_after 参数，取值为 YYYY-MM-DD，边界当天 00:00:00 与 23:59:59 的订单都必须包含，边界前一天的订单必须排除；非法日期返回 HTTP 400，错误码为 invalid_created_after；该参数要和 status、min_total、分页同时生效，先过滤后分页。不得改变原有的分页语义（SPEC-ORD-001）、状态筛选（SPEC-ORD-002）、金额下限（SPEC-ORD-003）与排序规则（SPEC-ORD-005）。",
+  "title": "为 orderflow 的订单列表接口增加按创建时间筛选能力：GET /orders 支持 created_after 参数，取值为 YYYY-MM-DD，边界",
+  "generated_at": "2026-10-27T13:18:38.485110+00:00",
+  "database": {
+    "engine": "seekdb",
+    "host": "127.0.0.1",
+    "port": 2881,
+    "database": "sdd",
+    "tables": [
+      "sdd_spec_clauses",
+      "sdd_code_symbols",
+      "sdd_tests",
+      "sdd_terms"
+    ]
+  },
+  "terms": [
+    "spec-ord-001",
+    "spec-ord-002",
+    "spec-ord-003",
+    "spec-ord-005",
+    "orderflow",
+    "get",
+    "orders",
+    "created_after",
+    "created",
+    "after",
+    "yyyy",
+    "mm",
+    "dd",
+    "http",
+    "invalid_created_after",
+    "invalid",
+    "status",
+    "min_total",
+    "min",
+    "total",
+    "spec",
+    "ord",
+    "的订",
+    "订单",
+    "单列",
+    "列表",
+    "表接",
+    "接口",
+    "口增",
+    "增加",
+    "加按",
+    "按创",
+    "创建",
+    "建时",
+    "时间",
+    "间筛",
+    "筛选",
+    "选能",
+    "能力",
+    "支持",
+    "参数",
+    "取值",
+    "值为",
+    "取值为",
+    "边界",
+    "界当",
+    "当天",
+    "边界当天",
+    "单都",
+    "都必",
+    "须包",
+    "包含",
+    "界前",
+    "前一",
+    "一天",
+    "天的",
+    "单必",
+    "须排",
+    "排除",
+    "非法",
+    "法日",
+    "日期",
+    "期返",
+    "返回",
+    "非法日期返回",
+    "错误",
+    "误码",
+    "码为",
+    "错误码为",
+    "该参",
+    "数要",
+    "要和",
+    "该参数要和",
+    "分页",
+    "页同",
+    "同时",
+    "时生",
+    "生效",
+    "分页同时生效",
+    "先过",
+    "过滤",
+    "滤后",
+    "后分",
+    "先过滤后分页",
+    "得改",
+    "改变",
+    "变原",
+    "原有",
+    "有的",
+    "的分",
+    "页语",
+    "语义",
+    "状态",
+    "态筛",
+    "状态筛选",
+    "金额",
+    "额下",
+    "下限",
+    "金额下限",
+    "与排",
+    "排序",
+    "序规",
+    "规则",
+    "与排序规则"
+  ],
+  "specs": [
+    {
+      "clause_id": "SPEC-ORD-004/R1",
+      "spec_id": "SPEC-ORD-004",
+      "title": "订单列表按创建时间筛选",
+      "version": 1,
+      "status": "proposed",
+      "heading": "参数形态",
+      "body": "`GET /orders` 新增可选查询参数 `created_after`，取值为 ISO-8601 日历日期，格式固定为 `YYYY-MM-DD`。参数缺省时行为与当前版本一致；参数出现且非空时进入 R2 的过滤逻辑。",
+      "role": "required",
+      "source": {
+        "path": "specs/SPEC-ORD-004-created-after.md",
+        "line_start": 12,
+        "line_end": 14
+      },
+      "score": 26,
+      "reason": "任务关键词命中"
+    },
+    {
+      "clause_id": "SPEC-ORD-004/R2",
+      "spec_id": "SPEC-ORD-004",
+      "title": "订单列表按创建时间筛选",
+      "version": 1,
+      "status": "proposed",
+      "heading": "过滤语义",
+      "body": "过滤条件是 `created_at` 的日期部分大于等于 `created_after`，比较按日历日进行，不受时区偏移影响。边界当天的订单必须全部包含：`00:00:00` 与 `23:59:59` 的订单都算命中，边界前一天 `23:59:59` 的订单必须排除。",
+      "role": "required",
+      "source": {
+        "path": "specs/SPEC-ORD-004-created-after.md",
+        "line_start": 16,
+        "line_end": 18
+      },
+      "score": 36,
+      "reason": "任务关键词命中"
+    },
+    {
+      "clause_id": "SPEC-ORD-004/R3",
+      "spec_id": "SPEC-ORD-004",
+      "title": "订单列表按创建时间筛选",
+      "version": 1,
+      "status": "proposed",
+      "heading": "非法输入",
+      "body": "`created_after` 无法按 `YYYY-MM-DD` 解析时（例如 `2026-13-01`、`2026-9-1`、空值、非日期文本），接口返回 HTTP 400，响应体 `error.code` 为 `invalid_created_after`，并沿用 SPEC-API-001 的错误信封。",
+      "role": "required",
+      "source": {
+        "path": "specs/SPEC-ORD-004-created-after.md",
+        "line_start": 20,
+        "line_end": 22
+      },
+      "score": 27,
+      "reason": "任务关键词命中"
+    },
+    {
+      "clause_id": "SPEC-ORD-004/R4",
+      "spec_id": "SPEC-ORD-004",
+      "title": "订单列表按创建时间筛选",
+      "version": 1,
+      "status": "proposed",
+      "heading": "与既有筛选、分页的组合",
+      "body": "`created_after` 必须能和 `status`、`min_total`、`page`、`page_size` 同时使用：先做全部过滤，再排序，最后分页；`total` 与 `pages` 按过滤后的集合计算，不得按过滤前的集合计算。",
+      "role": "required",
+      "source": {
+        "path": "specs/SPEC-ORD-004-created-after.md",
+        "line_start": 24,
+        "line_end": 26
+      },
+      "score": 30,
+      "reason": "任务关键词命中"
+    },
+    {
+      "clause_id": "SPEC-API-001/R2",
+      "spec_id": "SPEC-API-001",
+      "title": "订单查询接口契约",
+      "version": 6,
+      "status": "active",
+      "heading": "业务校验失败",
+      "body": "过滤参数或分页参数非法时返回 400，响应体固定为 `{\"error\": {\"code\": \"...\", \"message\": \"...\"}}`，`code` 使用服务层抛出的错误码（如 `invalid_status`、`invalid_pagination`、`invalid_min_total`）。",
+      "role": "constraint",
+      "source": {
+        "path": "specs/SPEC-API-001-query-contract.md",
+        "line_start": 16,
+        "line_end": 18
+      },
+      "score": 18,
+      "reason": "规格引用补全"
+    },
+    {
+      "clause_id": "SPEC-ORD-001/R1",
+      "spec_id": "SPEC-ORD-001",
+      "title": "订单列表分页",
+      "version": 4,
+      "status": "active",
+      "heading": "页码与页大小边界",
+      "body": "`page` 是 1 起始的页码，取值必须大于等于 1；`page_size` 取值必须在 `1..100` 闭区间内，默认 20。非整数或越界时抛出 `invalid_pagination`，HTTP 层映射为 400。",
+      "role": "constraint",
+      "source": {
+        "path": "specs/SPEC-ORD-001-pagination.md",
+        "line_start": 12,
+        "line_end": 14
+      },
+      "score": 20,
+      "reason": "任务关键词命中"
+    },
+    {
+      "clause_id": "SPEC-ORD-001/R2",
+      "spec_id": "SPEC-ORD-001",
+      "title": "订单列表分页",
+      "version": 4,
+      "status": "active",
+      "heading": "total 与 pages 的语义",
+      "body": "`total` 是过滤后的记录总数，`pages` 是 `ceil(total / page_size)`；两者都不能按过滤前的集合计算。响应必须回显调用方实际使用的 `page` 与 `page_size`。",
+      "role": "constraint",
+      "source": {
+        "path": "specs/SPEC-ORD-001-pagination.md",
+        "line_start": 16,
+        "line_end": 18
+      },
+      "score": 23,
+      "reason": "任务关键词命中"
+    },
+    {
+      "clause_id": "SPEC-ORD-002/R1",
+      "spec_id": "SPEC-ORD-002",
+      "title": "订单状态筛选",
+      "version": 3,
+      "status": "active",
+      "heading": "取值与错误码",
+      "body": "`status` 只接受 `pending`、`paid`、`shipped`、`cancelled` 四个取值；其他取值（包括拼写错误与空字符串）必须抛出 `invalid_status`，HTTP 层映射为 400，不得静默返回空列表。",
+      "role": "constraint",
+      "source": {
+        "path": "specs/SPEC-ORD-002-status-filter.md",
+        "line_start": 12,
+        "line_end": 14
+      },
+      "score": 31,
+      "reason": "任务关键词命中"
+    },
+    {
+      "clause_id": "SPEC-ORD-003/R1",
+      "spec_id": "SPEC-ORD-003",
+      "title": "订单金额下限筛选",
+      "version": 2,
+      "status": "active",
+      "heading": "闭区间语义",
+      "body": "`min_total` 表示订单总额（单位：分）的下界，过滤条件为 `total_cents >= min_total`，等于下界的订单必须保留。",
+      "role": "constraint",
+      "source": {
+        "path": "specs/SPEC-ORD-003-min-total-filter.md",
+        "line_start": 12,
+        "line_end": 14
+      },
+      "score": 26,
+      "reason": "任务关键词命中"
+    },
+    {
+      "clause_id": "SPEC-ORD-003/R2",
+      "spec_id": "SPEC-ORD-003",
+      "title": "订单金额下限筛选",
+      "version": 2,
+      "status": "active",
+      "heading": "非法取值",
+      "body": "`min_total` 必须是大于等于 0 的整数；负数、非整数文本抛出 `invalid_min_total`，HTTP 层映射为 400。",
+      "role": "constraint",
+      "source": {
+        "path": "specs/SPEC-ORD-003-min-total-filter.md",
+        "line_start": 16,
+        "line_end": 18
+      },
+      "score": 28,
+      "reason": "任务关键词命中"
+    },
+    {
+      "clause_id": "SPEC-ORD-005/R1",
+      "spec_id": "SPEC-ORD-005",
+      "title": "订单列表稳定排序",
+      "version": 5,
+      "status": "active",
+      "heading": "排序键",
+      "body": "排序键是 `(-total_cents, id)`：总额从高到低；总额相同时按订单号字符串升序。排序必须稳定且与过滤条件无关，翻页前后不能出现同一订单重复或遗漏。",
+      "role": "constraint",
+      "source": {
+        "path": "specs/SPEC-ORD-005-stable-ordering.md",
+        "line_start": 12,
+        "line_end": 14
+      },
+      "score": 21,
+      "reason": "任务关键词命中"
+    }
+  ],
+  "code": [
+    {
+      "symbol_id": "orderflow.api.ListQuery",
+      "path": "src/orderflow/api.py",
+      "qualified_name": "orderflow.api.ListQuery",
+      "kind": "class",
+      "line_start": 17,
+      "line_end": 39,
+      "signature": "class ListQuery",
+      "doc": "Validated query parameters for ``GET /orders``.",
+      "role": "modify",
+      "source": {
+        "path": "src/orderflow/api.py",
+        "line_start": 17,
+        "line_end": 39
+      },
+      "score": 5,
+      "reason": "规格 applies_to 或目标测试指向"
+    },
+    {
+      "symbol_id": "orderflow.api.ListQuery.as_filters",
+      "path": "src/orderflow/api.py",
+      "qualified_name": "orderflow.api.ListQuery.as_filters",
+      "kind": "method",
+      "line_start": 33,
+      "line_end": 39,
+      "signature": "as_filters(self)",
+      "doc": "",
+      "role": "modify",
+      "source": {
+        "path": "src/orderflow/api.py",
+        "line_start": 33,
+        "line_end": 39
+      },
+      "score": 3,
+      "reason": "规格 applies_to 或目标测试指向"
+    },
+    {
+      "symbol_id": "orderflow.api.parse_list_query",
+      "path": "src/orderflow/api.py",
+      "qualified_name": "orderflow.api.parse_list_query",
+      "kind": "function",
+      "line_start": 51,
+      "line_end": 59,
+      "signature": "parse_list_query(query: Mapping[str, list[str]])",
+      "doc": "Turn the raw query string into the parameters the service accepts.",
+      "role": "modify",
+      "source": {
+        "path": "src/orderflow/api.py",
+        "line_start": 51,
+        "line_end": 59
+      },
+      "score": 3,
+      "reason": "规格 applies_to 或目标测试指向"
+    },
+    {
+      "symbol_id": "orderflow.service.list_orders",
+      "path": "src/orderflow/service.py",
+      "qualified_name": "orderflow.service.list_orders",
+      "kind": "function",
+      "line_start": 83,
+      "line_end": 114,
+      "signature": "list_orders(orders: Iterable[Order], *, status: str | None=None, min_total: int | str | None=None, page: int | str=1, page_size: int | str=DEFAULT_PAGE_SIZE)",
+      "doc": "Return one page of orders after applying the supported filters.\n\nFiltering happens before sorting and paging, so ``total`` always counts the\nfiltered set and ``page`` indexes into it.",
+      "role": "modify",
+      "source": {
+        "path": "src/orderflow/service.py",
+        "line_start": 83,
+        "line_end": 114
+      },
+      "score": 15,
+      "reason": "规格 applies_to 或目标测试指向"
+    },
+    {
+      "symbol_id": "orderflow.api.ListQuery.__init__",
+      "path": "src/orderflow/api.py",
+      "qualified_name": "orderflow.api.ListQuery.__init__",
+      "kind": "method",
+      "line_start": 20,
+      "line_end": 31,
+      "signature": "__init__(self, *, status: str | None=None, min_total: str | None=None, page: str='1', page_size: str=str(DEFAULT_PAGE_SIZE))",
+      "doc": "",
+      "role": "context",
+      "source": {
+        "path": "src/orderflow/api.py",
+        "line_start": 20,
+        "line_end": 31
+      },
+      "score": 11,
+      "reason": "相关实现上下文"
+    },
+    {
+      "symbol_id": "orderflow.api.OrderHTTPServer",
+      "path": "src/orderflow/api.py",
+      "qualified_name": "orderflow.api.OrderHTTPServer",
+      "kind": "class",
+      "line_start": 62,
+      "line_end": 69,
+      "signature": "class OrderHTTPServer(ThreadingHTTPServer)",
+      "doc": "``ThreadingHTTPServer`` that carries the order data set.",
+      "role": "context",
+      "source": {
+        "path": "src/orderflow/api.py",
+        "line_start": 62,
+        "line_end": 69
+      },
+      "score": 3,
+      "reason": "相关实现上下文"
+    },
+    {
+      "symbol_id": "orderflow.api.OrderRequestHandler.do_GET",
+      "path": "src/orderflow/api.py",
+      "qualified_name": "orderflow.api.OrderRequestHandler.do_GET",
+      "kind": "method",
+      "line_start": 78,
+      "line_end": 91,
+      "signature": "do_GET(self)",
+      "doc": "",
+      "role": "context",
+      "source": {
+        "path": "src/orderflow/api.py",
+        "line_start": 78,
+        "line_end": 91
+      },
+      "score": 6,
+      "reason": "相关实现上下文"
+    },
+    {
+      "symbol_id": "orderflow.api.make_server",
+      "path": "src/orderflow/api.py",
+      "qualified_name": "orderflow.api.make_server",
+      "kind": "function",
+      "line_start": 108,
+      "line_end": 115,
+      "signature": "make_server(host: str='127.0.0.1', port: int=0, orders: tuple[Order, ...] | None=None)",
+      "doc": "Create (but do not start) an order API server.",
+      "role": "context",
+      "source": {
+        "path": "src/orderflow/api.py",
+        "line_start": 108,
+        "line_end": 115
+      },
+      "score": 5,
+      "reason": "相关实现上下文"
+    },
+    {
+      "symbol_id": "orderflow.repository.load_orders",
+      "path": "src/orderflow/repository.py",
+      "qualified_name": "orderflow.repository.load_orders",
+      "kind": "function",
+      "line_start": 13,
+      "line_end": 19,
+      "signature": "load_orders(path: Path | str | None=None)",
+      "doc": "Read orders from ``path`` (defaults to the bundled data file).",
+      "role": "context",
+      "source": {
+        "path": "src/orderflow/repository.py",
+        "line_start": 13,
+        "line_end": 19
+      },
+      "score": 6,
+      "reason": "相关实现上下文"
+    },
+    {
+      "symbol_id": "orderflow.service._sort_key",
+      "path": "src/orderflow/service.py",
+      "qualified_name": "orderflow.service._sort_key",
+      "kind": "function",
+      "line_start": 77,
+      "line_end": 80,
+      "signature": "_sort_key(order: Order)",
+      "doc": "",
+      "role": "context",
+      "source": {
+        "path": "src/orderflow/service.py",
+        "line_start": 77,
+        "line_end": 80
+      },
+      "score": 3,
+      "reason": "相关实现上下文"
+    },
+    {
+      "symbol_id": "orderflow.service.normalize_status",
+      "path": "src/orderflow/service.py",
+      "qualified_name": "orderflow.service.normalize_status",
+      "kind": "function",
+      "line_start": 29,
+      "line_end": 35,
+      "signature": "normalize_status(status: str)",
+      "doc": "Return the canonical status token or raise ``invalid_status``.",
+      "role": "context",
+      "source": {
+        "path": "src/orderflow/service.py",
+        "line_start": 29,
+        "line_end": 35
+      },
+      "score": 7,
+      "reason": "相关实现上下文"
+    },
+    {
+      "symbol_id": "orderflow.service.parse_min_total",
+      "path": "src/orderflow/service.py",
+      "qualified_name": "orderflow.service.parse_min_total",
+      "kind": "function",
+      "line_start": 65,
+      "line_end": 74,
+      "signature": "parse_min_total(value: str | int)",
+      "doc": "Parse the inclusive lower bound on ``total_cents``.",
+      "role": "context",
+      "source": {
+        "path": "src/orderflow/service.py",
+        "line_start": 65,
+        "line_end": 74
+      },
+      "score": 9,
+      "reason": "相关实现上下文"
+    },
+    {
+      "symbol_id": "orderflow.service.parse_page",
+      "path": "src/orderflow/service.py",
+      "qualified_name": "orderflow.service.parse_page",
+      "kind": "function",
+      "line_start": 38,
+      "line_end": 47,
+      "signature": "parse_page(value: str | int)",
+      "doc": "Parse a 1-based page number.",
+      "role": "context",
+      "source": {
+        "path": "src/orderflow/service.py",
+        "line_start": 38,
+        "line_end": 47
+      },
+      "score": 3,
+      "reason": "相关实现上下文"
+    },
+    {
+      "symbol_id": "orderflow.service.parse_page_size",
+      "path": "src/orderflow/service.py",
+      "qualified_name": "orderflow.service.parse_page_size",
+      "kind": "function",
+      "line_start": 50,
+      "line_end": 62,
+      "signature": "parse_page_size(value: str | int)",
+      "doc": "Parse a page size in ``1..MAX_PAGE_SIZE``.",
+      "role": "context",
+      "source": {
+        "path": "src/orderflow/service.py",
+        "line_start": 50,
+        "line_end": 62
+      },
+      "score": 3,
+      "reason": "相关实现上下文"
+    }
+  ],
+  "tests": [
+    {
+      "test_id": "tests/test_created_after_api.py::test_created_after_combines_with_status_and_paging",
+      "path": "tests/test_created_after_api.py",
+      "name": "test_created_after_combines_with_status_and_paging",
+      "kind": "target",
+      "spec_refs": [
+        "SPEC-ORD-004/R4"
+      ],
+      "code_refs": [],
+      "line_start": 41,
+      "line_end": 48,
+      "source": {
+        "path": "tests/test_created_after_api.py",
+        "line_start": 41,
+        "line_end": 48
+      },
+      "score": 13
+    },
+    {
+      "test_id": "tests/test_created_after_api.py::test_created_after_filters_orders",
+      "path": "tests/test_created_after_api.py",
+      "name": "test_created_after_filters_orders",
+      "kind": "target",
+      "spec_refs": [
+        "SPEC-ORD-004/R1"
+      ],
+      "code_refs": [],
+      "line_start": 13,
+      "line_end": 21,
+      "source": {
+        "path": "tests/test_created_after_api.py",
+        "line_start": 13,
+        "line_end": 21
+      },
+      "score": 13
+    },
+    {
+      "test_id": "tests/test_created_after_api.py::test_created_after_includes_the_boundary_day",
+      "path": "tests/test_created_after_api.py",
+      "name": "test_created_after_includes_the_boundary_day",
+      "kind": "target",
+      "spec_refs": [
+        "SPEC-ORD-004/R2"
+      ],
+      "code_refs": [],
+      "line_start": 25,
+      "line_end": 30,
+      "source": {
+        "path": "tests/test_created_after_api.py",
+        "line_start": 25,
+        "line_end": 30
+      },
+      "score": 10
+    },
+    {
+      "test_id": "tests/test_created_after_api.py::test_invalid_created_after_returns_400",
+      "path": "tests/test_created_after_api.py",
+      "name": "test_invalid_created_after_returns_400",
+      "kind": "target",
+      "spec_refs": [
+        "SPEC-ORD-004/R3",
+        "SPEC-API-001/R2"
+      ],
+      "code_refs": [],
+      "line_start": 34,
+      "line_end": 37,
+      "source": {
+        "path": "tests/test_created_after_api.py",
+        "line_start": 34,
+        "line_end": 37
+      },
+      "score": 13
+    },
+    {
+      "test_id": "tests/test_api_listing.py::test_filters_are_query_parameters",
+      "path": "tests/test_api_listing.py",
+      "name": "test_filters_are_query_parameters",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-ORD-002"
+      ],
+      "code_refs": [],
+      "line_start": 64,
+      "line_end": 67,
+      "source": {
+        "path": "tests/test_api_listing.py",
+        "line_start": 64,
+        "line_end": 67
+      },
+      "score": 6
+    },
+    {
+      "test_id": "tests/test_api_listing.py::test_health_endpoint",
+      "path": "tests/test_api_listing.py",
+      "name": "test_health_endpoint",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-API-001/R4"
+      ],
+      "code_refs": [],
+      "line_start": 57,
+      "line_end": 60,
+      "source": {
+        "path": "tests/test_api_listing.py",
+        "line_start": 57,
+        "line_end": 60
+      },
+      "score": 2
+    },
+    {
+      "test_id": "tests/test_api_listing.py::test_invalid_page_returns_400",
+      "path": "tests/test_api_listing.py",
+      "name": "test_invalid_page_returns_400",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-API-001/R2"
+      ],
+      "code_refs": [],
+      "line_start": 36,
+      "line_end": 39,
+      "source": {
+        "path": "tests/test_api_listing.py",
+        "line_start": 36,
+        "line_end": 39
+      },
+      "score": 5
+    },
+    {
+      "test_id": "tests/test_api_listing.py::test_invalid_status_returns_400",
+      "path": "tests/test_api_listing.py",
+      "name": "test_invalid_status_returns_400",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-API-001/R2"
+      ],
+      "code_refs": [],
+      "line_start": 29,
+      "line_end": 32,
+      "source": {
+        "path": "tests/test_api_listing.py",
+        "line_start": 29,
+        "line_end": 32
+      },
+      "score": 8
+    },
+    {
+      "test_id": "tests/test_api_listing.py::test_orders_response_shape",
+      "path": "tests/test_api_listing.py",
+      "name": "test_orders_response_shape",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-API-001/R1"
+      ],
+      "code_refs": [],
+      "line_start": 11,
+      "line_end": 25,
+      "source": {
+        "path": "tests/test_api_listing.py",
+        "line_start": 11,
+        "line_end": 25
+      },
+      "score": 5
+    },
+    {
+      "test_id": "tests/test_api_listing.py::test_oversized_page_size_returns_400",
+      "path": "tests/test_api_listing.py",
+      "name": "test_oversized_page_size_returns_400",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-API-001/R2"
+      ],
+      "code_refs": [],
+      "line_start": 43,
+      "line_end": 46,
+      "source": {
+        "path": "tests/test_api_listing.py",
+        "line_start": 43,
+        "line_end": 46
+      },
+      "score": 2
+    },
+    {
+      "test_id": "tests/test_api_listing.py::test_unknown_route_returns_404",
+      "path": "tests/test_api_listing.py",
+      "name": "test_unknown_route_returns_404",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-API-001/R3"
+      ],
+      "code_refs": [],
+      "line_start": 50,
+      "line_end": 53,
+      "source": {
+        "path": "tests/test_api_listing.py",
+        "line_start": 50,
+        "line_end": 53
+      },
+      "score": 2
+    },
+    {
+      "test_id": "tests/test_service_listing.py::test_empty_result_reports_zero_pages",
+      "path": "tests/test_service_listing.py",
+      "name": "test_empty_result_reports_zero_pages",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-ORD-001/R3"
+      ],
+      "code_refs": [],
+      "line_start": 63,
+      "line_end": 67,
+      "source": {
+        "path": "tests/test_service_listing.py",
+        "line_start": 63,
+        "line_end": 67
+      },
+      "score": 6
+    },
+    {
+      "test_id": "tests/test_service_listing.py::test_min_total_is_inclusive",
+      "path": "tests/test_service_listing.py",
+      "name": "test_min_total_is_inclusive",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-ORD-003/R1"
+      ],
+      "code_refs": [],
+      "line_start": 34,
+      "line_end": 41,
+      "source": {
+        "path": "tests/test_service_listing.py",
+        "line_start": 34,
+        "line_end": 41
+      },
+      "score": 12
+    },
+    {
+      "test_id": "tests/test_service_listing.py::test_negative_min_total_is_rejected",
+      "path": "tests/test_service_listing.py",
+      "name": "test_negative_min_total_is_rejected",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-ORD-003/R2"
+      ],
+      "code_refs": [],
+      "line_start": 45,
+      "line_end": 51,
+      "source": {
+        "path": "tests/test_service_listing.py",
+        "line_start": 45,
+        "line_end": 51
+      },
+      "score": 12
+    },
+    {
+      "test_id": "tests/test_service_listing.py::test_ordering_is_total_desc_then_id_asc",
+      "path": "tests/test_service_listing.py",
+      "name": "test_ordering_is_total_desc_then_id_asc",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-ORD-005/R1"
+      ],
+      "code_refs": [],
+      "line_start": 71,
+      "line_end": 80,
+      "source": {
+        "path": "tests/test_service_listing.py",
+        "line_start": 71,
+        "line_end": 80
+      },
+      "score": 9
+    },
+    {
+      "test_id": "tests/test_service_listing.py::test_page_bounds_are_validated",
+      "path": "tests/test_service_listing.py",
+      "name": "test_page_bounds_are_validated",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-ORD-001/R1"
+      ],
+      "code_refs": [],
+      "line_start": 84,
+      "line_end": 98,
+      "source": {
+        "path": "tests/test_service_listing.py",
+        "line_start": 84,
+        "line_end": 98
+      },
+      "score": 6
+    },
+    {
+      "test_id": "tests/test_service_listing.py::test_pagination_counts_the_filtered_set",
+      "path": "tests/test_service_listing.py",
+      "name": "test_pagination_counts_the_filtered_set",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-ORD-001/R2"
+      ],
+      "code_refs": [],
+      "line_start": 55,
+      "line_end": 59,
+      "source": {
+        "path": "tests/test_service_listing.py",
+        "line_start": 55,
+        "line_end": 59
+      },
+      "score": 6
+    },
+    {
+      "test_id": "tests/test_service_listing.py::test_status_filter_is_case_insensitive",
+      "path": "tests/test_service_listing.py",
+      "name": "test_status_filter_is_case_insensitive",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-ORD-002/R2"
+      ],
+      "code_refs": [],
+      "line_start": 28,
+      "line_end": 30,
+      "source": {
+        "path": "tests/test_service_listing.py",
+        "line_start": 28,
+        "line_end": 30
+      },
+      "score": 9
+    },
+    {
+      "test_id": "tests/test_service_listing.py::test_status_normalisation_strips_and_lowercases",
+      "path": "tests/test_service_listing.py",
+      "name": "test_status_normalisation_strips_and_lowercases",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-ORD-002/R1"
+      ],
+      "code_refs": [],
+      "line_start": 102,
+      "line_end": 103,
+      "source": {
+        "path": "tests/test_service_listing.py",
+        "line_start": 102,
+        "line_end": 103
+      },
+      "score": 9
+    },
+    {
+      "test_id": "tests/test_service_listing.py::test_unknown_status_is_rejected",
+      "path": "tests/test_service_listing.py",
+      "name": "test_unknown_status_is_rejected",
+      "kind": "regression",
+      "spec_refs": [
+        "SPEC-ORD-002/R1"
+      ],
+      "code_refs": [],
+      "line_start": 18,
+      "line_end": 24,
+      "source": {
+        "path": "tests/test_service_listing.py",
+        "line_start": 18,
+        "line_end": 24
+      },
+      "score": 9
+    }
+  ],
+  "change_targets": [
+    "orderflow.api.ListQuery",
+    "orderflow.api.ListQuery.as_filters",
+    "orderflow.api.parse_list_query",
+    "orderflow.service.list_orders"
+  ],
+  "state": {
+    "task_id": "task-order-created-after",
+    "title": "为 orderflow 的订单列表接口增加按创建时间筛选能力：GET /orders 支持 created_after 参数，取值为 YYYY-MM-DD，边界",
+    "status": "failed",
+    "step": "patch",
+    "done": [],
+    "todo": [
+      "生成上下文",
+      "调用 MiniMax 修改代码",
+      "运行目标测试与回归测试"
+    ],
+    "verifications": [],
+    "context_id": "ctx-20261027T131705631175-9e84f9",
+    "updated_at": "2026-10-27T13:17:16.767372+00:00",
+    "revision": 2
+  },
+  "summary": {
+    "spec_clauses": 11,
+    "code_symbols": 14,
+    "change_targets": 4,
+    "target_tests": 4,
+    "regression_tests": 16,
+    "queries": 15
+  },
+  "queries": [
+    {
+      "purpose": "select.config",
+      "sql_sha": "f33969067135a73a1e10370949766aeebdb125f7fd9b21f0e64f6b25fad2a2ff",
+      "sql": "SELECT config_value FROM sdd_config WHERE config_key = %s",
+      "params": [
+        "powercontext.scope_id"
+      ],
+      "row_count": 1,
+      "duration_ms": 2,
+      "task_id": null,
+      "at": "2026-10-27T13:18:35.130203+00:00"
+    },
+    {
+      "purpose": "select.config",
+      "sql_sha": "f33969067135a73a1e10370949766aeebdb125f7fd9b21f0e64f6b25fad2a2ff",
+      "sql": "SELECT config_value FROM sdd_config WHERE config_key = %s",
+      "params": [
+        "powercontext.scope_id"
+      ],
+      "row_count": 1,
+      "duration_ms": 1,
+      "task_id": null,
+      "at": "2026-10-27T13:18:35.661788+00:00"
+    },
+    {
+      "purpose": "select.terms",
+      "sql_sha": "c264fb80b02853f7038e5a4ae2180843cba366ae17263e3234ec6114e0eb3594",
+      "sql": "SELECT ref_kind, ref_id, SUM(weight) AS score, COUNT(*) AS hits FROM sdd_terms WHERE term IN (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) GROUP BY ref_kind, ref_id ORDER BY score DESC, hits DESC, ref_kind, ref_id LIMIT %s",
+      "params": [
+        "spec-ord-001",
+        "spec-ord-002",
+        "spec-ord-003",
+        "spec-ord-005",
+        "orderflow",
+        "get",
+        "orders",
+        "created_after",
+        "created",
+        "after",
+        "yyyy",
+        "mm",
+        "dd",
+        "http",
+        "invalid_created_after",
+        "invalid",
+        "status",
+        "min_total",
+        "min",
+        "total",
+        "spec",
+        "ord",
+        "的订",
+        "订单",
+        "单列",
+        "列表",
+        "表接",
+        "接口",
+        "口增",
+        "增加",
+        "加按",
+        "按创",
+        "创建",
+        "建时",
+        "时间",
+        "间筛",
+        "筛选",
+        "选能",
+        "能力",
+        "支持",
+        "参数",
+        "取值",
+        "值为",
+        "取值为",
+        "边界",
+        "界当",
+        "当天",
+        "边界当天",
+        "单都",
+        "都必",
+        "须包",
+        "包含",
+        "界前",
+        "前一",
+        "一天",
+        "天的",
+        "单必",
+        "须排",
+        "排除",
+        "非法",
+        "法日",
+        "日期",
+        "期返",
+        "返回",
+        "非法日期返回",
+        "错误",
+        "误码",
+        "码为",
+        "错误码为",
+        "该参",
+        "数要",
+        "要和",
+        "该参数要和",
+        "分页",
+        "页同",
+        "同时",
+        "时生",
+        "生效",
+        "分页同时生效",
+        "先过",
+        "过滤",
+        "滤后",
+        "后分",
+        "先过滤后分页",
+        "得改",
+        "改变",
+        "变原",
+        "原有",
+        "有的",
+        "的分",
+        "页语",
+        "语义",
+        "状态",
+        "态筛",
+        "状态筛选",
+        "金额",
+        "额下",
+        "下限",
+        "金额下限",
+        "与排",
+        "排序",
+        "序规",
+        "规则",
+        "与排序规则",
+        80
+      ],
+      "row_count": 67,
+      "duration_ms": 7,
+      "task_id": "task-order-created-after",
+      "at": "2026-10-27T13:18:36.061130+00:00"
+    },
+    {
+      "purpose": "select.clauses",
+      "sql_sha": "73b21ad7fd268b517541b11988e99ac01fa76da2f6db878bef313b6c578c3f06",
+      "sql": "SELECT clause_id, spec_id, spec_title, version, status, ordinal, heading, body, line_start, line_end, applies_to, verified_by, path FROM sdd_spec_clauses WHERE clause_id IN (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ORDER BY clause_id",
+      "params": [
+        "SPEC-ORD-004/R2",
+        "SPEC-ORD-002/R1",
+        "SPEC-ORD-004/R4",
+        "SPEC-ORD-003/R2",
+        "SPEC-ORD-004/R3",
+        "SPEC-ORD-004/R1",
+        "SPEC-ORD-003/R1",
+        "SPEC-ORD-001/R2",
+        "SPEC-ORD-005/R1",
+        "SPEC-ORD-001/R1"
+      ],
+      "row_count": 10,
+      "duration_ms": 10,
+      "task_id": "task-order-created-after",
+      "at": "2026-10-27T13:18:36.234713+00:00"
+    },
+    {
+      "purpose": "select.symbols",
+      "sql_sha": "01676ee340ef627ef6dcca2bf72d37c0c58ed0ff0df94440f0549ce06a3b4d19",
+      "sql": "SELECT symbol_id, path, qualified_name, kind, line_start, line_end, signature, doc FROM sdd_code_symbols WHERE symbol_id IN (%s, %s, %s, %s, %s, %s, %s, %s) ORDER BY symbol_id",
+      "params": [
+        "orderflow.service.list_orders",
+        "orderflow.api.ListQuery.__init__",
+        "orderflow.service.parse_min_total",
+        "orderflow.service.normalize_status",
+        "orderflow.api.OrderRequestHandler.do_GET",
+        "orderflow.repository.load_orders",
+        "orderflow.api.ListQuery",
+        "orderflow.api.make_server"
+      ],
+      "row_count": 8,
+      "duration_ms": 5,
+      "task_id": "task-order-created-after",
+      "at": "2026-10-27T13:18:36.351574+00:00"
+    },
+    {
+      "purpose": "select.tests",
+      "sql_sha": "b900934ca1bb55d27f8087bb9eef2b709580d41941b3739803edd2d2868205c8",
+      "sql": "SELECT test_id, path, name, kind, spec_refs, code_refs, doc, line_start, line_end FROM sdd_tests WHERE test_id IN (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) ORDER BY test_id",
+      "params": [
+        "tests/test_created_after_api.py::test_created_after_combines_with_status_and_paging",
+        "tests/test_created_after_api.py::test_created_after_filters_orders",
+        "tests/test_created_after_api.py::test_invalid_created_after_returns_400",
+        "tests/test_service_listing.py::test_min_total_is_inclusive",
+        "tests/test_service_listing.py::test_negative_min_total_is_rejected",
+        "tests/test_created_after_api.py::test_created_after_includes_the_boundary_day",
+        "tests/test_service_listing.py::test_ordering_is_total_desc_then_id_asc",
+        "tests/test_service_listing.py::test_status_filter_is_case_insensitive",
+        "tests/test_service_listing.py::test_status_normalisation_strips_and_lowercases",
+        "tests/test_service_listing.py::test_unknown_status_is_rejected"
+      ],
+      "row_count": 10,
+      "duration_ms": 2,
+      "task_id": "task-order-created-after",
+      "at": "2026-10-27T13:18:36.457143+00:00"
+    },
+    {
+      "purpose": "select.clauses",
+      "sql_sha": "4b6bcc4451992e53d68d842a958d98b476ba5caa1ddb656049eca30117b2736f",
+      "sql": "SELECT clause_id, spec_id, spec_title, version, status, ordinal, heading, body, line_start, line_end, applies_to, verified_by, path FROM sdd_spec_clauses WHERE clause_id IN (%s) ORDER BY clause_id",
+      "params": [
+        "SPEC-API-001/R2"
+      ],
+      "row_count": 1,
+      "duration_ms": 2,
+      "task_id": "task-order-created-after",
+      "at": "2026-10-27T13:18:36.588110+00:00"
+    },
+    {
+      "purpose": "select.symbols",
+      "sql_sha": "48a8d869f21004016b15bc6ab7ab90d3529bd826da338d54687f9eb134fbf2c1",
+      "sql": "SELECT symbol_id, path, qualified_name, kind, line_start, line_end, signature, doc FROM sdd_code_symbols WHERE symbol_id IN (%s) ORDER BY symbol_id",
+      "params": [
+        "orderflow.service.parse_page"
+      ],
+      "row_count": 1,
+      "duration_ms": 2,
+      "task_id": "task-order-created-after",
+      "at": "2026-10-27T13:18:36.704341+00:00"
+    },
+    {
+      "purpose": "select.symbols",
+      "sql_sha": "48a8d869f21004016b15bc6ab7ab90d3529bd826da338d54687f9eb134fbf2c1",
+      "sql": "SELECT symbol_id, path, qualified_name, kind, line_start, line_end, signature, doc FROM sdd_code_symbols WHERE symbol_id IN (%s) ORDER BY symbol_id",
+      "params": [
+        "orderflow.service.parse_page_size"
+      ],
+      "row_count": 1,
+      "duration_ms": 2,
+      "task_id": "task-order-created-after",
+      "at": "2026-10-27T13:18:36.806924+00:00"
+    },
+    {
+      "purpose": "select.symbols",
+      "sql_sha": "48a8d869f21004016b15bc6ab7ab90d3529bd826da338d54687f9eb134fbf2c1",
+      "sql": "SELECT symbol_id, path, qualified_name, kind, line_start, line_end, signature, doc FROM sdd_code_symbols WHERE symbol_id IN (%s) ORDER BY symbol_id",
+      "params": [
+        "orderflow.api.parse_list_query"
+      ],
+      "row_count": 1,
+      "duration_ms": 2,
+      "task_id": "task-order-created-after",
+      "at": "2026-10-27T13:18:37.003691+00:00"
+    },
+    {
+      "purpose": "select.symbols",
+      "sql_sha": "48a8d869f21004016b15bc6ab7ab90d3529bd826da338d54687f9eb134fbf2c1",
+      "sql": "SELECT symbol_id, path, qualified_name, kind, line_start, line_end, signature, doc FROM sdd_code_symbols WHERE symbol_id IN (%s) ORDER BY symbol_id",
+      "params": [
+        "orderflow.api.ListQuery.as_filters"
+      ],
+      "row_count": 1,
+      "duration_ms": 1,
+      "task_id": "task-order-created-after",
+      "at": "2026-10-27T13:18:37.278429+00:00"
+    },
+    {
+      "purpose": "select.symbols",
+      "sql_sha": "48a8d869f21004016b15bc6ab7ab90d3529bd826da338d54687f9eb134fbf2c1",
+      "sql": "SELECT symbol_id, path, qualified_name, kind, line_start, line_end, signature, doc FROM sdd_code_symbols WHERE symbol_id IN (%s) ORDER BY symbol_id",
+      "params": [
+        "orderflow.service._sort_key"
+      ],
+      "row_count": 1,
+      "duration_ms": 2,
+      "task_id": "task-order-created-after",
+      "at": "2026-10-27T13:18:37.524768+00:00"
+    },
+    {
+      "purpose": "select.symbols",
+      "sql_sha": "48a8d869f21004016b15bc6ab7ab90d3529bd826da338d54687f9eb134fbf2c1",
+      "sql": "SELECT symbol_id, path, qualified_name, kind, line_start, line_end, signature, doc FROM sdd_code_symbols WHERE symbol_id IN (%s) ORDER BY symbol_id",
+      "params": [
+        "orderflow.api.OrderHTTPServer"
+      ],
+      "row_count": 1,
+      "duration_ms": 2,
+      "task_id": "task-order-created-after",
+      "at": "2026-10-27T13:18:37.802413+00:00"
+    },
+    {
+      "purpose": "select.tests_for_specs",
+      "sql_sha": "ea2c9837251979ebf40b849673b2f2b91158cb1b83be7583079c71f7aa044f47",
+      "sql": "SELECT test_id, path, name, kind, spec_refs, code_refs, doc, line_start, line_end FROM sdd_tests WHERE spec_refs LIKE %s OR spec_refs LIKE %s OR spec_refs LIKE %s OR spec_refs LIKE %s OR spec_refs LIKE %s OR spec_refs LIKE %s ORDER BY kind, test_id",
+      "params": [
+        "%SPEC-API-001%",
+        "%SPEC-ORD-001%",
+        "%SPEC-ORD-002%",
+        "%SPEC-ORD-003%",
+        "%SPEC-ORD-004%",
+        "%SPEC-ORD-005%"
+      ],
+      "row_count": 20,
+      "duration_ms": 3,
+      "task_id": "task-order-created-after",
+      "at": "2026-10-27T13:18:38.060241+00:00"
+    },
+    {
+      "purpose": "select.tests_for_symbols",
+      "sql_sha": "c959cc503019ceacbb778111ee3dfa6d5e427bf96a9eb1a724046e4f98a90d4c",
+      "sql": "SELECT test_id, path, name, kind, spec_refs, code_refs, doc, line_start, line_end FROM sdd_tests WHERE code_refs LIKE %s OR code_refs LIKE %s OR code_refs LIKE %s OR code_refs LIKE %s OR code_refs LIKE %s OR code_refs LIKE %s OR code_refs LIKE %s OR code_refs LIKE %s OR code_refs LIKE %s OR code_refs LIKE %s OR code_refs LIKE %s OR code_refs LIKE %s OR code_refs LIKE %s OR code_refs LIKE %s ORDER BY kind, test_id",
+      "params": [
+        "%orderflow.api.ListQuery%",
+        "%orderflow.api.ListQuery.__init__%",
+        "%orderflow.api.make_server%",
+        "%orderflow.api.OrderRequestHandler.do_GET%",
+        "%orderflow.repository.load_orders%",
+        "%orderflow.service.list_orders%",
+        "%orderflow.service.normalize_status%",
+        "%orderflow.service.parse_min_total%",
+        "%orderflow.service.parse_page%",
+        "%orderflow.service.parse_page_size%",
+        "%orderflow.api.parse_list_query%",
+        "%orderflow.api.ListQuery.as_filters%",
+        "%orderflow.service._sort_key%",
+        "%orderflow.api.OrderHTTPServer%"
+      ],
+      "row_count": 0,
+      "duration_ms": 6,
+      "task_id": "task-order-created-after",
+      "at": "2026-10-27T13:18:38.315538+00:00"
+    }
+  ]
+}

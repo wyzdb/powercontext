@@ -1,0 +1,87 @@
+<<<PATCH
+--- a/src/orderflow/api.py
++++ b/src/orderflow/api.py
+@@ -19,6 +19,7 @@ class ListQuery:
+         *,
+         status: str | None = None,
+         min_total: str | None = None,
++        created_after: str | None = None,
+         page: str = "1",
+         page_size: str = str(DEFAULT_PAGE_SIZE),
+     ) -> None:
+@@ -26,6 +27,7 @@ class ListQuery:
+         self.status = status
+         self.min_total = min_total
++        self.created_after = created_after
+         self.page = page
+         self.page_size = page_size
+ 
+@@ -35,6 +37,8 @@ class ListQuery:
+             filters["status"] = self.status
+         if self.min_total is not None:
+             filters["min_total"] = self.min_total
++        if self.created_after is not None:
++            filters["created_after"] = self.created_after
+         return filters
+ 
+@@ -54,6 +58,7 @@ def parse_list_query(query: Mapping[str, list[str]]) -> ListQuery:
+     return ListQuery(
+         status=_single(query, "status"),
+         min_total=_single(query, "min_total"),
++        created_after=_single(query, "created_after"),
+         page=_single(query, "page") or "1",
+         page_size=_single(query, "page_size") or str(DEFAULT_PAGE_SIZE),
+     )
+--- a/src/orderflow/service.py
++++ b/src/orderflow/service.py
+@@ -8,6 +8,7 @@ dependency-free: the demo service must start on a
+ clean machine with nothing but the Python standard library, and the SDD
+ context module must be able to index these symbols with ``ast`` alone.
+ """
++from datetime import date
+ 
+ from __future__ import annotations
+ 
+@@ -78,6 +79,20 @@ def parse_min_total(value: str | int) -> int:
+     return minimum
+ 
+ 
++def parse_created_after(value: str) -> date:
++    """Parse an inclusive lower bound on the order creation date."""
++
++    try:
++        return date.fromisoformat(value)
++    except (TypeError, ValueError) as exc:
++        raise QueryError(
++            "invalid_created_after",
++            f"created_after is not a valid date in YYYY-MM-DD format: {value!r}",
++        ) from exc
++
++
+ def _sort_key(order: Order) -> tuple[int, str]:
+     # SPEC-ORD-005: highest total first, ties broken by ascending order id so
+     # repeated pages never reshuffle equal totals.
+@@ -89,6 +104,7 @@ def list_orders(
+     *,
+     status: str | None = None,
+     min_total: int | str | None = None,
++    created_after: str | None = None,
+     page: int | str = 1,
+     page_size: int | str = DEFAULT_PAGE_SIZE,
+ ) -> Page:
+@@ -103,11 +119,14 @@ def list_orders(
+     size = parse_page_size(page_size)
+     status_token = normalize_status(status) if status is not None else None
+     minimum = parse_min_total(min_total) if min_total is not None else None
++    created_date = parse_created_after(created_after) if created_after is not None else None
+ 
+     filtered: Sequence[Order] = [
+         order
+         for order in orders
+         if (status_token is None or order.status == status_token)
+         and (minimum is None or order.total_cents >= minimum)
++        and (created_date is None or order.created_at.date() >= created_date)
+     ]
+ 
+     ordered = sorted(filtered, key=_sort_key)
+PATCH>>>

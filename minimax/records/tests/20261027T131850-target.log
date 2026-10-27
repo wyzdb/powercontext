@@ -1,0 +1,173 @@
+command: C:\Users\程伟展\Documents\deepseek-harness\default-workspace\py312\python.exe -m pytest tests/test_created_after_api.py::test_created_after_combines_with_status_and_paging tests/test_created_after_api.py::test_created_after_filters_orders tests/test_created_after_api.py::test_created_after_includes_the_boundary_day tests/test_created_after_api.py::test_invalid_created_after_returns_400 -q -p no:cacheprovider
+exit: 1
+
+FFF.                                                                     [100%]
+================================== FAILURES ===================================
+_____________ test_created_after_combines_with_status_and_paging ______________
+
+api_base = 'http://127.0.0.1:56175'
+
+    def test_created_after_combines_with_status_and_paging(api_base: str) -> None:
+>       status, body = get_json(
+            f"{api_base}/orders?status=paid&created_after=2026-09-14&page=2&page_size=1"
+        )
+
+tests\test_created_after_api.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\conftest.py:87: in get_json
+    with urllib.request.urlopen(request, timeout=5) as response:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib\request.py:215: in urlopen
+    ???
+urllib\request.py:515: in open
+    ???
+urllib\request.py:532: in _open
+    ???
+urllib\request.py:492: in _call_chain
+    ???
+urllib\request.py:1373: in http_open
+    ???
+urllib\request.py:1348: in do_open
+    ???
+http\client.py:1430: in getresponse
+    ???
+http\client.py:331: in begin
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <http.client.HTTPResponse object at 0x0000024D462CCA30>
+
+>   ???
+E   http.client.RemoteDisconnected: Remote end closed connection without response
+
+http\client.py:300: RemoteDisconnected
+---------------------------- Captured stderr call -----------------------------
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 56176)
+Traceback (most recent call last):
+  File "socketserver.py", line 697, in process_request_thread
+  File "socketserver.py", line 362, in finish_request
+  File "socketserver.py", line 766, in __init__
+  File "http\server.py", line 436, in handle
+  File "http\server.py", line 424, in handle_one_request
+  File "C:\Users\程伟展\Documents\deepseek-harness\default-workspace\minimax\business\src\orderflow\api.py", line 91, in do_GET
+    page = list_orders(self.server.orders, **parse_list_query(query).as_filters())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\程伟展\Documents\deepseek-harness\default-workspace\minimax\business\src\orderflow\service.py", line 124, in list_orders
+    or order.created_at.date() >= created_date
+       ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'date'
+----------------------------------------
+______________________ test_created_after_filters_orders ______________________
+
+api_base = 'http://127.0.0.1:56177'
+
+    def test_created_after_filters_orders(api_base: str) -> None:
+>       status, body = get_json(f"{api_base}/orders?created_after=2026-09-15&page_size=10")
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_created_after_api.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\conftest.py:87: in get_json
+    with urllib.request.urlopen(request, timeout=5) as response:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib\request.py:215: in urlopen
+    ???
+urllib\request.py:515: in open
+    ???
+urllib\request.py:532: in _open
+    ???
+urllib\request.py:492: in _call_chain
+    ???
+urllib\request.py:1373: in http_open
+    ???
+urllib\request.py:1348: in do_open
+    ???
+http\client.py:1430: in getresponse
+    ???
+http\client.py:331: in begin
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <http.client.HTTPResponse object at 0x0000024D462CF670>
+
+>   ???
+E   http.client.RemoteDisconnected: Remote end closed connection without response
+
+http\client.py:300: RemoteDisconnected
+---------------------------- Captured stderr call -----------------------------
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 56178)
+Traceback (most recent call last):
+  File "socketserver.py", line 697, in process_request_thread
+  File "socketserver.py", line 362, in finish_request
+  File "socketserver.py", line 766, in __init__
+  File "http\server.py", line 436, in handle
+  File "http\server.py", line 424, in handle_one_request
+  File "C:\Users\程伟展\Documents\deepseek-harness\default-workspace\minimax\business\src\orderflow\api.py", line 91, in do_GET
+    page = list_orders(self.server.orders, **parse_list_query(query).as_filters())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\程伟展\Documents\deepseek-harness\default-workspace\minimax\business\src\orderflow\service.py", line 124, in list_orders
+    or order.created_at.date() >= created_date
+       ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'date'
+----------------------------------------
+________________ test_created_after_includes_the_boundary_day _________________
+
+api_base = 'http://127.0.0.1:56179'
+
+    def test_created_after_includes_the_boundary_day(api_base: str) -> None:
+>       _, body = get_json(f"{api_base}/orders?created_after=2026-09-15&page_size=10")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_created_after_api.py:26: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\conftest.py:87: in get_json
+    with urllib.request.urlopen(request, timeout=5) as response:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib\request.py:215: in urlopen
+    ???
+urllib\request.py:515: in open
+    ???
+urllib\request.py:532: in _open
+    ???
+urllib\request.py:492: in _call_chain
+    ???
+urllib\request.py:1373: in http_open
+    ???
+urllib\request.py:1348: in do_open
+    ???
+http\client.py:1430: in getresponse
+    ???
+http\client.py:331: in begin
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <http.client.HTTPResponse object at 0x0000024D462CE9B0>
+
+>   ???
+E   http.client.RemoteDisconnected: Remote end closed connection without response
+
+http\client.py:300: RemoteDisconnected
+---------------------------- Captured stderr call -----------------------------
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 56180)
+Traceback (most recent call last):
+  File "socketserver.py", line 697, in process_request_thread
+  File "socketserver.py", line 362, in finish_request
+  File "socketserver.py", line 766, in __init__
+  File "http\server.py", line 436, in handle
+  File "http\server.py", line 424, in handle_one_request
+  File "C:\Users\程伟展\Documents\deepseek-harness\default-workspace\minimax\business\src\orderflow\api.py", line 91, in do_GET
+    page = list_orders(self.server.orders, **parse_list_query(query).as_filters())
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\程伟展\Documents\deepseek-harness\default-workspace\minimax\business\src\orderflow\service.py", line 124, in list_orders
+    or order.created_at.date() >= created_date
+       ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'str' object has no attribute 'date'
+----------------------------------------
+=========================== short test summary info ===========================
+FAILED tests/test_created_after_api.py::test_created_after_combines_with_status_and_paging
+FAILED tests/test_created_after_api.py::test_created_after_filters_orders - h...
+FAILED tests/test_created_after_api.py::test_created_after_includes_the_boundary_day
+3 failed, 1 passed in 2.15s

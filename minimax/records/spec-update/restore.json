@@ -1,0 +1,22 @@
+﻿{
+  "action": "restore",
+  "ingest": {
+    "at": "2026-10-27T13:24:30.909908+00:00",
+    "business_root": "C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\minimax\\business",
+    "database": "127.0.0.1:2881/sdd",
+    "specs": 6,
+    "clauses": 17,
+    "symbols": 31,
+    "tests": 20,
+    "terms": 1759,
+    "spec_ids": [
+      "SPEC-API-001",
+      "SPEC-ORD-001",
+      "SPEC-ORD-002",
+      "SPEC-ORD-003",
+      "SPEC-ORD-004",
+      "SPEC-ORD-005"
+    ]
+  },
+  "restored": "SPEC-ORD-004-created-after.md"
+}

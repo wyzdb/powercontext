@@ -1,115 +1,240 @@
-# 规有所依 — SDD 工程上下文模块
+# 规有所依：面向软件连续演进的 SDD 上下文管理系统
 
-这是一个面向小型业务工程的 SDD（Spec-Driven Development）上下文模块：
+本目录是「MiniMax × OceanBase 生态题」的提交材料。它实现了一个工程上下文模块：
+给定一条开发任务，从 seekdb 中检索适用的**规格条目**、**需要修改的代码符号**和**验证测试**，
+把上下文交给 **MiniMax** 完成一次真实代码修改，全程用 **PowerContext** 保存任务状态，
+并在模块重启后继续复用。
 
-- **seekdb / OceanBase**：保存并查询规格、代码、测试的版本化资料。
-- **PowerContext**：保存任务进展和验证结果，模块重启后读取使用。
-- **MiniMax**：根据选中的上下文生成实际代码修改补丁。
-- **业务工程**：`workspace/` 下的费用审批模块，带目标测试和回归测试。
+目录内的业务工程 `business/orderflow`、规格库、测试与改动记录都是自包含的，
+评审从干净环境按本文档操作即可复现。
 
-## 目录
+## 1. 技术与分工
+
+| 技术 | 在本作品中的实际作用 | 证据位置 |
+| --- | --- | --- |
+| MiniMax（`MiniMax-M3`，OpenAI 兼容接口） | 读取上下文，产出 unified diff，完成 `created_after` 过滤功能 | `records/minimax/*.json`、`records/minimax/*.prompt.md`、`artifacts/change.diff` |
+| seekdb（`v1.4.0.0`，MySQL 协议） | 存储规格条目、代码符号、测试索引与倒排索引；检索查询结果直接构造上下文 | `context/sdd_context/store.py`、`records/seekdb/queries.jsonl`、`sdd_query_log` 表 |
+| PowerContext（`1.4.1` Server + Python Client） | 把任务进展、已完成/待办、验证结果写为 Source，重启后读回并注入上下文 | `context/sdd_context/powercontext_state.py`、`records/powercontext/state.jsonl` |
+
+MiniMax 的接入方式是 HTTP API（`POST {MINIMAX_BASE_URL}/chat/completions`），
+不是只安装组件或只在文档里点名：`records/minimax/` 中每次调用都保存了模型名、请求 ID、
+token 用量、完整 prompt、原始响应和实际应用的补丁，并与 `artifacts/change.diff` 一一对应。
+
+## 2. 目录结构
 
 ```
-sdd_context/          上下文模块（存储、选择、PowerContext 状态、CLI）
-agent/                MiniMax 客户端和任务执行入口
-workspace/            可运行业务工程、before/after 快照、测试、diff
-data/                 导入 seekdb 的规格、代码、测试资料
-validation/           验证样例和自动验收脚本
-record/               MiniMax、seekdb、PowerContext、测试日志
+minimax/
+├── business/                     # 可运行、带测试的业务工程（demo）
+│   ├── src/orderflow/            # 订单查询服务：models / service / repository / api / CLI
+│   ├── specs/                    # SDD 规格（6 份，17 条 R 编号条款）
+│   │   └── updates/              # 规格更新样例（v2），用于验证「重新导入后输出更新」
+│   └── tests/                    # 17 个回归用例 + 4 个目标功能用例
+├── context/sdd_context/          # 本题主体：上下文模块
+│   ├── cli.py                    # 调用入口（db-init / ingest / build / run / status / spec-demo ...）
+│   ├── indexer.py                # Markdown 规格 + AST 代码符号 + 测试注解 → 索引
+│   ├── store.py                  # seekdb 表结构、写入、检索、查询日志
+│   ├── context_builder.py        # 检索排序 + 引用闭包 + 上下文载荷与 Markdown 渲染
+│   ├── minimax_client.py         # MiniMax 客户端与补丁提取
+│   ├── patcher.py                # unified diff 校验、容错定位与应用
+│   ├── powercontext_state.py     # PowerContext Source 状态读写
+│   ├── pipeline.py               # context → MiniMax → patch → tests → 记录
+│   └── sample.py                 # 验证样例的任务文本与编号
+├── scripts/
+│   ├── sdd.py                    # 模块入口包装（兼容忽略 PYTHONPATH 的解释器）
+│   ├── run_sample.py             # 一键跑完验证样例并输出记录
+│   ├── powercontext_server.py    # 启动 PowerContext Server
+│   └── start_seekdb.ps1          # 启动 seekdb 容器（Windows）
+├── docs/                         # 一页技术说明、验证样例、架构、运行日志
+├── records/                      # 真实运行记录（context / minimax / seekdb / powercontext / tests / sample）
+└── artifacts/                    # 修改前快照、修改后快照、change.diff
 ```
 
-## 环境
+## 3. 环境要求
 
-- Python 3.11+
-- Linux（seekdb 模式需要 `pylibseekdb`；Windows/macOS 可使用 SQLite 回退）
-- PowerContext 仓库的 `src/` 在 `PYTHONPATH` 中
+- Python **3.11+**（本作品在 3.12.10 上验证）
+- Docker（运行 seekdb）或一台可连接的 seekdb / OceanBase MySQL 模式实例
+- MiniMax Token Plan 的 API Key
+
+依赖版本固定为 `requirements.txt`：`powercontext[server]==1.4.1`、`PyMySQL==1.2.0`、`pytest==9.1.1`。
 
 ```bash
-cd minimax
-python3.12 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-export PYTHONPATH="$(cd .. && pwd)/src"
+python -m pip install -r requirements.txt
 ```
 
-`requirements.txt` 使用 `pylibseekdb==1.3.0.post5`；如果评测环境锁定其他 1.3.x 小版本，替换为环境提供的版本即可。没有 seekdb 绑定时模块自动回退到 SQLite，并在上下文响应的 `sources.backend` 中标注。
+## 4. 快速开始
 
-## 初始化与调用
+### 4.1 启动 seekdb 并初始化数据
 
-在 `minimax/` 目录执行：
+```powershell
+docker run -d --name seekdb -p 2881:2881 --restart unless-stopped quay.io/oceanbase/seekdb:latest
+```
+
+也可以复用已在运行的实例；默认连接 `127.0.0.1:2881`，用户 `root`，空密码。
+确认实例可用：
 
 ```bash
-# 导入 data/ 下的 specs、code、tests（写入 seekdb 或 SQLite）
-python -m sdd_context.cli init --backend seekdb
-
-# 为任务生成上下文；输出包含必要规格、代码、测试和真实来源
-python -m sdd_context.cli context \
-  --task-id expense-manager-threshold \
-  --task "Expense requests above 500 must require manager approval while existing validation behaviour stays unchanged."
-
-# 保存任务进展
-python -m sdd_context.cli state \
-  --task-id expense-manager-threshold \
-  --task "Expense requests above 500 must require manager approval..." \
-  --completed "imported" "context selected" \
-  --pending "apply patch" "run tests" \
-  --validation '[{"phase":"before","returncode":1}]'
-
-# 模块重启后读取状态
-python -m sdd_context.cli status --task-id expense-manager-threshold
+python scripts/sdd.py doctor
 ```
 
-规格更新：修改 `data/specs/SPEC-001.md` 的 `Version` 和数值，再执行 `init`；`context` 会返回新版本，不会返回固定旧答案。也可以运行：
+`doctor` 会同时检查 seekdb、PowerContext 与 MiniMax Key，输出每项的 `ok`。
+
+### 4.2 配置 MiniMax 与 PowerContext
+
+复制 `.env.example` 为 `.env`，填入真实 Key 与绝对路径：
+
+```dotenv
+MINIMAX_API_KEY=sk-api-...
+MINIMAX_BASE_URL=https://api.minimax.chat/v1
+MINIMAX_MODEL=MiniMax-M3
+SDD_SEEKDB_HOST=127.0.0.1
+SDD_SEEKDB_PORT=2881
+SDD_SEEKDB_DATABASE=sdd
+POWERCONTEXT_SERVER_URL=http://127.0.0.1:8765
+POWERCONTEXT_SERVER_DATABASE_KIND=sqlite
+POWERCONTEXT_SERVER_DATABASE_URL=sqlite+aiosqlite:////absolute/path/to/minimax/.state/powercontext.db
+```
+
+`.env` 已在 `.gitignore` 中，不会进入提交。
+
+启动 PowerContext Server（前台运行，另开终端继续下一步）：
 
 ```bash
-python -m sdd_context.cli update-spec --threshold 300
-python -m sdd_context.cli context --task-id expense-manager-threshold --task "..."
+python scripts/powercontext_server.py .env
 ```
 
-## 运行 MiniMax 代码修改
+### 4.3 建库、导入工程资料
 
 ```bash
-export MINIMAX_API_KEY="..."
-export MINIMAX_MODEL="MiniMax-Text-01"
-python agent/run_task.py
+python scripts/sdd.py db-init          # 在 seekdb 中建库建表
+python scripts/sdd.py ingest           # 解析规格/代码/测试并写入索引
 ```
 
-没有 API key 时，使用已验证的记录回放：
+`ingest` 输出示例：
+
+```json
+{"specs": 6, "clauses": 17, "symbols": 30, "tests": 20, "terms": 1678}
+```
+
+### 4.4 一键运行验证样例
 
 ```bash
-python agent/run_task.py --offline
+python scripts/sdd.py reset-sample --task-id task-order-created-after --clear-state
+python scripts/run_sample.py
 ```
 
-## 一键验证
+`run_sample.py` 依次执行并在 `records/sample/` 留下记录：
+
+1. 重置业务工程（恢复修改前代码）与任务状态；
+2. 修改前跑目标测试 → **必须失败**（`4 failed`）；
+3. 重新导入索引；
+4. 构建上下文（`records/contexts/ctx-*.json` 与 `.md`）；
+5. 调用 MiniMax 生成补丁、应用补丁；
+6. 修改后跑同一组目标测试与回归测试 → **必须全部通过**；
+7. 跑完整测试集（21 passed）；
+8. 在**新进程**中读取 PowerContext 状态：先 `status` 确认 `completed` 与 2 条验证结果，
+   再 `build --json` 确认状态被注入新的上下文（`state.status=completed`）。
+
+期望输出结尾：
+
+```json
+{"task_id": "task-order-created-after", "outcome": "success", ...}
+```
+
+## 5. 调用入口与输出
+
+模块入口是 CLI：`python scripts/sdd.py <子命令>`（等价于在 `context/` 加入 `PYTHONPATH` 后
+`python -m sdd_context`）。输入为任务文本与任务编号，输出为 JSON 上下文载荷，同时写入
+`records/contexts/`。
+
+| 子命令 | 输入 | 输出 / 作用 |
+| --- | --- | --- |
+| `db-init [--reset]` | — | 建库建表（`--reset` 先删表） |
+| `ingest` | 业务工程目录 | 规格条款、代码符号、测试、倒排索引写入 seekdb |
+| `build --task <文本> [--task-id <id>] [--json]` | 任务描述 | 上下文载荷：适用规格、待改符号、目标/回归测试、任务状态、查询记录 |
+| `run --task <文本> [--task-id <id>]` | 任务描述 | 完整闭环：上下文 → MiniMax → 补丁 → 测试 → PowerContext 状态 |
+| `status --task-id <id>` | 任务编号 | task 行、事件流、PowerContext 状态 |
+| `reset-sample --task-id <id> [--clear-state]` | 任务编号 | 恢复修改前代码、清理任务记录 |
+| `spec-demo apply\|restore` | — | 应用/还原规格 v2，验证「重新导入后输出使用更新内容」 |
+| `doctor` | — | seekdb / PowerContext / MiniMax 自检 |
+
+`build` 的 JSON 关键字段（`records/contexts/ctx-*.json`）：
+
+```json
+{
+  "context_id": "ctx-...",
+  "task_id": "task-order-created-after",
+  "specs": [{"clause_id": "SPEC-ORD-004/R2", "version": 1, "status": "proposed",
+             "role": "required", "body": "...", "source": {"path": "...", "line_start": 16, "line_end": 18}}],
+  "code": [{"symbol_id": "orderflow.service.list_orders", "role": "modify",
+            "path": "src/orderflow/service.py", "line_start": 83, "line_end": 114}],
+  "tests": [{"test_id": "tests/test_created_after_api.py::test_created_after_filters_orders",
+             "kind": "target", "spec_refs": ["SPEC-ORD-004/R1"]}],
+  "state": {"status": "completed", "done": ["..."], "todo": [], "verifications": [{"exit_code": 0}]}
+}
+```
+
+每条规格、代码、测试都带 `source.path` 与行号，来源是仓库中真实存在的文件。
+
+## 6. 验证样例与重置
+
+验证样例的任务文本、有效规格、初始数据、步骤与预期结果见
+[`docs/verification-sample.md`](docs/verification-sample.md)。
+
+重置示例：
 
 ```bash
-python validation/run_validation.py seekdb
-# 或
-python validation/run_validation.py sqlite
+python scripts/sdd.py reset-sample --task-id task-order-created-after --clear-state
 ```
 
-脚本会：
+该命令把 `artifacts/before/` 还原回 `business/`，删除该任务在 `sdd_tasks`、
+`sdd_task_events`、`sdd_contexts` 中的记录，并在 PowerContext 中写入一个 `empty` 状态。
+随后重新执行 `scripts/run_sample.py` 即可从空状态复现。
 
-1. 用 before 快照运行目标测试，确认失败；
-2. 应用 MiniMax 补丁对应的 after 快照，确认目标测试和回归测试通过；
-3. 导入资料、生成上下文，检查 `SPEC-001`、`SPEC-002`、代码和测试来源；
-4. 更新规格到 v2/300，重新导入并确认上下文使用新内容；
-5. 保存任务状态，重启模块后读取并再次生成上下文。
+## 7. 测试
 
-结果写入 `record/validation_result.json`，测试日志写入 `record/pytest_before.log` 和 `record/pytest_after.log`。
+```bash
+# 上下文模块自身
+python -m pytest -q                      # 19 passed
 
-## 验证样例
+# 业务工程（修改前）
+cd business && python -m pytest -q       # 4 failed, 17 passed（目标功能尚未实现）
 
-`validation/task.json` 定义了要改什么和哪些行为必须保持：
+# 业务工程（应用补丁后）
+cd business && python -m pytest -q       # 21 passed
+```
 
-- 目标：`approve(750, "travel", "alice")` 返回 `pending_manager` 且 `requires_manager=true`。
-- 目标：`approve(500, ...)` 仍然自动通过。
-- 回归：非正金额、空类别、空申请人仍抛 `ValueError`；审计字段不丢失。
+`records/tests/` 保存了每次测试的完整命令、退出码与输出。
 
-重置：`git checkout -- data/specs`，删除 `.sdd/`、`workspace/expense_approval/approvals.py` 后重新运行 before/after 步骤即可。
+## 8. 记录与证据
 
-## 已知限制
+| 路径 | 内容 |
+| --- | --- |
+| `records/contexts/` | 每次构建的上下文 JSON 与 Markdown |
+| `records/minimax/` | 每次 MiniMax 调用的 prompt、响应、补丁、测试结果（含失败尝试） |
+| `records/seekdb/queries.jsonl` | 实际执行的 SQL、参数摘要、行数、耗时 |
+| `records/powercontext/state.jsonl` | 状态写入、读取、缺失与重启检查 |
+| `records/tests/` | 目标测试、回归测试、全量测试日志 |
+| `records/sample/` | 验证样例的整体结果 |
+| `artifacts/before/`、`artifacts/after/`、`artifacts/change.diff` | 修改前后快照与差异 |
 
-- seekdb 绑定只提供 Linux 构建；其他平台使用 SQLite 回退，`sources.backend` 会显示实际后端。
-- 回放模式使用 `record/minimax_response.patch`，不重新调用模型；需要重新生成时设置 `MINIMAX_API_KEY`。
-- 这是任务上下文和代码修改的最小可运行样例，不包含完整 Agent 会话恢复。
+## 9. 已知限制
+
+- MiniMax 是 `MiniMax-M3`；`M3` 默认会消耗全部 completion 预算做推理，客户端因此显式发送
+  `thinking: {"type": "disabled"}`，仅对 `MiniMax-M3*` 生效。
+- 补丁应用是严格校验的 unified diff：允许行号漂移（在 ±80 行内按上下文定位），
+  但上下文行必须匹配；不匹配会失败并保留记录，不会静默改错文件。
+- 检索是词法倒排索引（中文二元组 + 英文标识符切分），不依赖 embedding 模型，
+  因此完全离线、结果可复现；语义相近但用词不同的任务需要扩充规格措辞。
+- PowerContext 使用 SQLite 单机模式；多副本部署需要改用 OceanBase/seekdb 后端并配置鉴权。
+- 业务工程是刻意保持依赖为零的 demo；把它换成真实仓库时，只需替换 `SDD_BUSINESS_ROOT`
+  并保持 `specs/`、`src/`、`tests/` 的布局。
+
+## 10. 排错
+
+- `doctor` 中 seekdb 不 ok：确认容器在运行、端口 2881 可连、`.env` 中账号密码正确。
+- PowerContext 不 ok：确认 `scripts/powercontext_server.py` 仍在运行，端口与
+  `POWERCONTEXT_SERVER_URL` 一致；`/health/live` 可直接用浏览器访问。
+- MiniMax 调用失败：检查 `MINIMAX_API_KEY` 是否有效、额度是否可用；
+  `records/minimax/*.json` 中 `error` 字段会保留服务端返回的错误码与信息。
+- Windows 上无法写临时目录：本作品的所有目录都由 `os.makedirs` 创建，不使用 `mkdtemp`；
+  若仍遇到权限问题，把仓库放到用户目录下再试。
