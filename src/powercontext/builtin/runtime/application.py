@@ -213,6 +213,7 @@ from powercontext.builtin.runtime.models import (
     SubmitSourceObservation,
     TopicMemoryFlushResult,
 )
+from powercontext.builtin.runtime.context_pack import ContextPack, ContextPackDelta, ContextPackError
 from powercontext.builtin.runtime.prepared_code import PreparedCodeCandidate, code_candidates
 from powercontext.builtin.runtime.prepared_context import (
     PreparedContextBuild,
@@ -846,6 +847,23 @@ class ScopedContextApplication:
             if authorize_scopes is not None:
                 await authorize_scopes((self.scope_id, *scope.context_references))
             return await self._prepare(request, scope)
+
+    async def prepare_incremental(
+        self,
+        request: PrepareContextRequest,
+        /,
+        *,
+        base_pack: ContextPack | None = None,
+    ) -> ContextPack | ContextPackDelta:
+        """Prepare a full pack, or a delta against a previously sent pack."""
+
+        prepared = await self.prepare(request)
+        target = ContextPack.build(()) if prepared.content is None else ContextPack.from_content(prepared.content)
+        if base_pack is None:
+            return target
+        if not isinstance(base_pack, ContextPack):
+            raise ContextPackError("base_pack must be a ContextPack")
+        return ContextPackDelta.between(base_pack, target)
 
     async def _prepare(self, request: PrepareContextRequest, scope: ScopeDescriptor, /) -> PreparedContext:
         build, effort = await self._prepare_build(request, scope)
