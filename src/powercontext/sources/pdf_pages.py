@@ -195,15 +195,74 @@ async def search_pdf_pages(
                 best[key] = (score, order, hit)
             order += 1
 
-    ranked = sorted(best.values(), key=lambda item: (-item[0], item[1]))[:limit]
-    return tuple(
+    ranked = sorted(best.values(), key=lambda item: (-item[0], item[1]))[:100]
+    citations = [
         MemoryCitation(
             memory_ref=hit.memory_ref,
             entry_id=hit.entry_id,
             entry_version_id=hit.entry_version_id,
         )
         for _score, _order, hit in ranked
-    )
+    ]
+    pages, page_citations = await _page_map(memory)
+    if not pages:
+        return tuple(citations[:limit])
+
+    candidates: dict[int, tuple[float, int, MemoryCitation]] = {}
+    for rank, citation in enumerate(citations):
+        page = pages.get((citation.entry_id, citation.entry_version_id))
+        if page is None:
+            continue
+        base = 1.0 / ((rank + 1) ** 0.7)
+        for delta, weight in ((0, 1.0), (1, 1.0), (-1, 1.0), (2, 0.6), (-2, 0.6)):
+            neighbor = page + delta
+            neighbor_citation = page_citations.get(neighbor)
+            if neighbor_citation is None:
+                continue
+            score = base * weight
+            existing = candidates.get(neighbor)
+            if existing is None or score > existing[0]:
+                candidates[neighbor] = (score, rank, neighbor_citation)
+
+    selected = sorted(candidates.values(), key=lambda item: (-item[0], item[1]))[:limit]
+    return tuple(item[2] for item in selected)
+
+
+async def _page_map(
+    memory: Any,
+) -> tuple[
+    dict[tuple[str, str], int],
+    dict[int, MemoryCitation],
+]:
+    """Map Memory citations to physical PDF pages through their Source identities."""
+
+    cached = getattr(memory, "_pdf_page_citation_map", None)
+    if cached is not None:
+        return cached
+    entries = await memory.list()
+    by_citation: dict[tuple[str, str], int] = {}
+    by_page: dict[int, MemoryCitation] = {}
+    for record in entries.entries:
+        citation = MemoryCitation(
+            memory_ref=record.memory_ref,
+            entry_id=record.entry.entry_id,
+            entry_version_id=record.entry.entry_version_id,
+        )
+        page = None
+        for reference in record.entry.sources:
+            if reference.source_type != PDF_PAGE_SOURCE_NAME:
+                continue
+            try:
+                page = int(reference.source_id.rsplit(":", 1)[-1])
+            except ValueError:
+                continue
+            break
+        if page is None:
+            continue
+        by_citation[(citation.entry_id, citation.entry_version_id)] = page
+        by_page[page] = citation
+    setattr(memory, "_pdf_page_citation_map", (by_citation, by_page))
+    return by_citation, by_page
 
 
 _STOPWORDS = frozenset(
@@ -289,6 +348,31 @@ def _search_queries(question: str):
         keyword_query = " ".join(keywords)
         if keyword_query != question:
             yield keyword_query
+    expansions: list[str] = []
+    for word in keywords:
+        for prefix, phrases in _QUERY_EXPANSIONS:
+            if word.startswith(prefix):
+                for phrase in phrases:
+                    if phrase not in expansions:
+                        expansions.append(phrase)
+    for phrase in expansions:
+        if phrase != question and phrase != " ".join(keywords):
+            yield phrase
+
+
+_QUERY_EXPANSIONS = (
+    ("geograph", ("countries and territories", "segments operations")),
+    ("legal", ("legal proceedings", "litigation contingencies")),
+    ("battle", ("legal proceedings", "litigation contingencies")),
+    ("litigation", ("legal proceedings", "litigation contingencies")),
+    ("restructur", ("restructuring charges", "restructuring costs")),
+    ("ebitda", ("income statement operating income", "cash flows depreciation amortization")),
+    ("income", ("consolidated statement of income", "consolidated statements of income", "income statement operating income", "statements of income")),
+    ("margin", ("operating income net revenue",)),
+    ("revenue", ("net revenue net sales",)),
+    ("risk", ("risk factors uncertainties",)),
+    ("liquidity", ("liquidity capital resources",)),
+)
 
 
 def _validate_document_id(document_id: str) -> None:
