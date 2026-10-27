@@ -1,0 +1,46 @@
+{
+  "notes": [
+    {
+      "note_id": "note-001",
+      "title": "Attention Is All You Need — reading notes",
+      "content": "Transformer self-attention removes recurrence. Multi-head attention projects queries, keys and values; scaled dot-product attention is the core block. Positional encoding preserves order information.",
+      "tags": ["transformer", "attention", "deep-learning"],
+      "created_at": "2026-09-02T10:00:00Z"
+    },
+    {
+      "note_id": "note-002",
+      "title": "Retrieval-augmented generation experiment log",
+      "content": "RAG pipeline: chunk papers into 512-token passages, embed with bge-m3, store in seekdb, retrieve top-k and rerank. Hybrid keyword + vector recall improved answer grounding in the lab notebook.",
+      "tags": ["rag", "retrieval", "seekdb", "experiment"],
+      "created_at": "2026-09-10T14:30:00Z"
+    },
+    {
+      "note_id": "note-003",
+      "title": "Weekly group meeting 2026-09-18",
+      "content": "Discussed ablation plan for the retrieval baseline. TODO: add BM25 comparison, verify chunk overlap, and prepare a three-slide update for next week.",
+      "tags": ["meeting", "todo", "retrieval"],
+      "created_at": "2026-09-18T09:00:00Z"
+    },
+    {
+      "note_id": "note-004",
+      "title": "Embedding evaluation checklist",
+      "content": "Evaluate recall@10 and MRR@10 on the held-out query set. Check normalization, dimension, and whether query/document embeddings use the same model revision.",
+      "tags": ["evaluation", "embedding", "metrics"],
+      "created_at": "2026-09-20T16:00:00Z"
+    },
+    {
+      "note_id": "note-005",
+      "title": "Lab safety and dataset licence notes",
+      "content": "The SciFact claims and evidence annotations are CC BY 4.0; paper abstracts follow S2ORC ODC-By 1.0. Keep attribution in the dataset card and do not redistribute restricted PDFs.",
+      "tags": ["dataset", "licence", "scifact"],
+      "created_at": "2026-09-22T11:00:00Z"
+    },
+    {
+      "note_id": "note-006",
+      "title": "Presentation outline: memory for research assistants",
+      "content": "Research assistants lose context across sessions. Save the researcher's interests, current stage and next goal, then reuse them to rank new papers and notes. Measure time-to-find before and after.",
+      "tags": ["memory", "powercontext", "research"],
+      "created_at": "2026-09-25T13:00:00Z"
+    }
+  ]
+}
