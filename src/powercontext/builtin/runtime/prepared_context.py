@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from itertools import chain
@@ -47,6 +48,68 @@ _ELLIPSIS = "…"
 _BEGIN_MARKER = "BEGIN_POWERCONTEXT_PREPARED_CONTEXT_V1"
 _END_MARKER = "END_POWERCONTEXT_PREPARED_CONTEXT_V1"
 _Item = TypeVar("_Item")
+
+_SELECTION_STOPWORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "are",
+        "as",
+        "at",
+        "be",
+        "by",
+        "for",
+        "from",
+        "has",
+        "have",
+        "in",
+        "is",
+        "it",
+        "its",
+        "of",
+        "on",
+        "or",
+        "that",
+        "the",
+        "their",
+        "this",
+        "to",
+        "was",
+        "were",
+        "what",
+        "when",
+        "where",
+        "which",
+        "who",
+        "with",
+    }
+)
+
+
+def _selection_terms(query: str) -> tuple[str, ...]:
+    return tuple(
+        dict.fromkeys(
+            term
+            for term in re.findall(r"[^\W_]+", query.casefold())
+            if len(term) > 2 and term not in _SELECTION_STOPWORDS
+        )
+    )
+
+
+def _sentence_spans(text: str) -> tuple[tuple[int, int], ...]:
+    spans: list[tuple[int, int]] = []
+    for match in re.finditer(r"[^.!?\n]+[.!?]?", text):
+        start, end = match.span()
+        while start < end and text[start].isspace():
+            start += 1
+        while end > start and text[end - 1].isspace():
+            end -= 1
+        if start < end:
+            spans.append((start, end))
+    if not spans and text:
+        spans.append((0, len(text)))
+    return tuple(spans)
 
 
 @dataclass(frozen=True)
@@ -106,6 +169,17 @@ class PreparedContextBuild:
     origins: tuple[PreparedContextOrigin, ...]
     omissions: PreparedContextOmissions = PreparedContextOmissions()
     code_origins: tuple[CodeEvidenceRef, ...] = ()
+    fragments: tuple[ContextFragment, ...] = ()
+
+
+@dataclass(frozen=True)
+class ContextFragment:
+    """One literal character span selected from an exact Memory entry."""
+
+    address: MemoryEntryAddress
+    start: int
+    end: int
+    text: str
 
 
 @dataclass(frozen=True)
@@ -235,6 +309,9 @@ class PreparedContextBuilder:
         if sum(len(candidates.hits) for candidates in experience_candidates) > self.experience_candidate_limit:
             raise PreparedContextInvariantError("experience-candidate-limit")
 
+        if request.evidence_selection:
+            return self._build_selection(request, current_scope_id, memory_candidates)
+
         content, origins, omissions = self._select_entries(
             request=request,
             current_scope_id=current_scope_id,
@@ -256,8 +333,130 @@ class PreparedContextBuilder:
             omissions=omissions,
         )
 
-    def probe_budget(
+    def _build_selection(
         self,
+        request: PrepareContextRequest,
+        current_scope_id: str | None,
+        memory_candidates: Sequence[PreparedMemoryCandidates],
+    ) -> PreparedContextBuild:
+        candidates = self._selection_candidates(request.query, memory_candidates)
+        if not candidates:
+            return PreparedContextBuild(context=self.empty(), origins=(), fragments=())
+
+        included: list[ContextFragment] = []
+        for candidate in candidates:
+            fitted = self._fit_selection_fragment(request, included, candidate)
+            if fitted is not None:
+                included.append(fitted)
+        if not included:
+            return PreparedContextBuild(context=self.empty(), origins=(), fragments=())
+        content = self._render_selection(included)
+        content_bytes = len(content.encode("utf-8"))
+        if content_bytes > request.max_bytes:
+            raise PreparedContextInvariantError("output-budget")
+        return PreparedContextBuild(
+            context=PreparedContext(status="ready", content=content, content_bytes=content_bytes),
+            origins=tuple(fragment.address for fragment in included),
+            fragments=tuple(included),
+        )
+
+    def _selection_candidates(
+        self,
+        query: str,
+        memory_candidates: Sequence[PreparedMemoryCandidates],
+    ) -> list[ContextFragment]:
+        terms = _selection_terms(query)
+        query_lower = query.casefold()
+        scored_fragments: list[tuple[float, int, ContextFragment]] = []
+        for group in memory_candidates:
+            for rank, hit in enumerate(group.hits):
+                if hit.memory_ref is None or not hit.text:
+                    continue
+                scored: list[tuple[int, int, int]] = []
+                for start, end in _sentence_spans(hit.text):
+                    sentence = hit.text[start:end].casefold()
+                    score = sum(1 for term in terms if term in sentence)
+                    if query_lower and query_lower in sentence:
+                        score += 3
+                    if score > 0:
+                        scored.append((score, start, end))
+                if not scored:
+                    scored = [(1, 0, min(len(hit.text), 400))]
+                scored.sort(key=lambda item: (-item[0], item[1]))
+                selected = sorted(scored[:4], key=lambda item: item[1])
+                merged: list[tuple[int, int, int]] = []
+                for score, start, end in selected:
+                    if merged and start <= merged[-1][1] + 2:
+                        previous_start, previous_end, previous_score = merged[-1]
+                        merged[-1] = (previous_start, max(previous_end, end), max(previous_score, score))
+                    else:
+                        merged.append((start, end, score))
+                address = MemoryEntryAddress(
+                    memory=ArtifactAddress(scope_id=group.scope_id, artifact=hit.memory_ref),
+                    entry_id=hit.entry_id,
+                    entry_version_id=hit.entry_version_id,
+                )
+                for start, end, score in merged:
+                    fragment = ContextFragment(address=address, start=start, end=end, text=hit.text[start:end])
+                    scored_fragments.append((score + 0.01 / (rank + 1), rank, fragment))
+        scored_fragments.sort(key=lambda item: (-item[0], item[1], item[2].start))
+        return [fragment for _score, _rank, fragment in scored_fragments]
+
+    def _fit_selection_fragment(
+        self,
+        request: PrepareContextRequest,
+        included: Sequence[ContextFragment],
+        fragment: ContextFragment,
+    ) -> ContextFragment | None:
+        if len(self._render_selection((*included, fragment)).encode("utf-8")) <= request.max_bytes:
+            return fragment
+        low, high = fragment.start + 1, fragment.end
+        best: ContextFragment | None = None
+        while low <= high:
+            middle = (low + high) // 2
+            shortened = ContextFragment(
+                address=fragment.address,
+                start=fragment.start,
+                end=middle,
+                text=fragment.text[: middle - fragment.start],
+            )
+            if len(self._render_selection((*included, shortened)).encode("utf-8")) <= request.max_bytes:
+                best = shortened
+                low = middle + 1
+            else:
+                high = middle - 1
+        if best is None or len(best.text.encode("utf-8")) < 32:
+            return None
+        return best
+
+    def _render_selection(self, fragments: Sequence[ContextFragment]) -> str:
+        items = [
+            {
+                "citation": {
+                    "scope_id": fragment.address.memory.scope_id,
+                    "memory_ref": fragment.address.memory.artifact.model_dump(mode="json"),
+                    "entry_id": fragment.address.entry_id,
+                    "entry_version_id": fragment.address.entry_version_id,
+                },
+                "content": fragment.text,
+                "start": fragment.start,
+                "end": fragment.end,
+            }
+            for fragment in fragments
+        ]
+        payload = json.dumps(
+            {"trust": "untrusted_history", "items": items},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        return (
+            f"{TRUST_POLICY}\n\n"
+            "BEGIN_POWERCONTEXT_PREPARED_CONTEXT_V1\n"
+            f"{payload}\n"
+            "END_POWERCONTEXT_PREPARED_CONTEXT_V1"
+        )
+
+    def probe_budget(        self,
         *,
         request: PrepareContextRequest,
         current_scope_id: str | None,
