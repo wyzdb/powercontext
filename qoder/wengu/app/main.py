@@ -238,7 +238,7 @@ def grade(req: GradeRequest):
     res = (_mem.advance_progress if correct else _mem.upsert_weakness)(
         req.learner, req.concept, "" if correct else req.answer)
     return {"correct": correct, "feedback": verdict,
-            "memory_ok": res.ok, "memory_note": res.note}
+            "memory_ok": res["ok"], "memory_note": res["note"]}
 
 
 @app.get("/api/profile/{learner}")
@@ -250,10 +250,10 @@ def profile(learner: str):
     mem = pc.get_profile(learner)
     return {
         "learner": learner,
-        "source": "powercontext" if mem.ok else "unavailable",
-        "memory_ok": mem.ok,
-        "note": mem.note,
-        "weaknesses": mem.items,
-        "count": len(mem.items),
-        "banner": "" if mem.ok else "记忆服务不可用，本次不显示历史弱点",
+        "source": "powercontext" if mem["ok"] else "unavailable",
+        "memory_ok": mem["ok"],
+        "note": mem["note"],
+        "weaknesses": mem["items"],
+        "count": len(mem["items"]),
+        "banner": "" if mem["ok"] else "记忆服务不可用，本次不显示历史弱点",
     }
