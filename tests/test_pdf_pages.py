@@ -16,13 +16,22 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import io
+import zlib
 from pathlib import Path
 
 import pytest
 from pypdf import PdfWriter
-from pypdf.generic import ArrayObject, DecodedStreamObject, DictionaryObject, NameObject
+from pypdf.generic import (
+    ArrayObject,
+    DecodedStreamObject,
+    DictionaryObject,
+    EncodedStreamObject,
+    NameObject,
+    NumberObject,
+)
 
 from powercontext.builtin.artifacts.memory import MemoryEntryInput
 from powercontext.builtin.persistence.sqlite import SQLiteConfig
@@ -173,3 +182,82 @@ async def test_real_memory_restart_scope_distinct_pages_and_limits(tmp_path: Pat
         isolated = await search_pdf_pages(runtime.memory.for_scope(other.scope_id), "cash flows", limit=20)
         assert len(isolated) == 1
         assert isolated[0].entry_id not in ids
+
+
+def make_filtered_pdf(encoded: bytes, *, nested: bool, chained: bool) -> bytes:
+    from pypdf import PdfReader
+
+    writer = PdfWriter()
+    writer.append_pages_from_reader(PdfReader(io.BytesIO(make_pdf("first intact page", "second"))))
+    page = writer.pages[1]
+    stream = EncodedStreamObject()
+    stream._data = base64.a85encode(encoded, adobe=True) if chained else encoded
+    stream[NameObject("/Filter")] = (
+        ArrayObject([NameObject("/ASCII85Decode"), NameObject("/FlateDecode")])
+        if chained
+        else NameObject("/FlateDecode")
+    )
+    if nested:
+        stream[NameObject("/Type")] = NameObject("/XObject")
+        stream[NameObject("/Subtype")] = NameObject("/Form")
+        stream[NameObject("/BBox")] = ArrayObject([
+            NumberObject(0),
+            NumberObject(0),
+            NumberObject(612),
+            NumberObject(792),
+        ])
+        stream[NameObject("/Resources")] = page["/Resources"]
+        page[NameObject("/Resources")] = DictionaryObject({
+            NameObject("/XObject"): DictionaryObject({NameObject("/Form1"): stream})
+        })
+        content = DecodedStreamObject()
+        content.set_data(b"q /Form1 Do Q")
+        page[NameObject("/Contents")] = content
+    else:
+        page[NameObject("/Contents")] = stream
+    buffer = io.BytesIO()
+    writer.write(buffer)
+    return buffer.getvalue()
+
+
+@pytest.mark.parametrize("nested", [False, True])
+@pytest.mark.parametrize("chained", [False, True])
+@pytest.mark.parametrize("damage", ["invalid", "truncated", "checksum"])
+def test_corrupt_compression_does_not_become_blank_or_partial_page(nested, chained, damage):
+    encoded = zlib.compress(b"BT /F1 12 Tf 50 700 Td (Revenue 123 and debt 456) Tj ET")
+    if damage == "invalid":
+        encoded = b"this is not a zlib stream"
+    elif damage == "truncated":
+        encoded = encoded[:-1]
+    else:
+        encoded = encoded[:-1] + bytes([encoded[-1] ^ 1])
+    raw = make_filtered_pdf(encoded, nested=nested, chained=chained)
+    with pytest.raises(ValueError, match="completely parsed"):
+        parse_pdf_document(PDFDocumentInput(document_id="compressed", content=raw))
+
+
+@pytest.mark.parametrize("nested", [False, True])
+@pytest.mark.parametrize("chained", [False, True])
+@pytest.mark.parametrize("text", [b"", b"BT /F1 12 Tf 50 700 Td (Revenue 123 and debt 456) Tj ET"])
+def test_complete_compressed_streams_remain_readable(nested, chained, text):
+    raw = make_filtered_pdf(zlib.compress(text), nested=nested, chained=chained)
+    pages = parse_pdf_document(PDFDocumentInput(document_id="compressed", content=raw))
+    assert len(pages) == 2 and "first intact page" in pages[0].text
+    assert ("Revenue 123" in pages[1].text and "debt 456" in pages[1].text) if text else pages[1].text == ""
+
+
+def test_null_unused_xobject_resources_do_not_reject_valid_text():
+    from pypdf import PdfReader
+    from pypdf.generic import NullObject
+
+    writer = PdfWriter()
+    writer.append_pages_from_reader(PdfReader(io.BytesIO(make_pdf("Revenue 123"))))
+    resources = writer.pages[0]["/Resources"]
+    assert isinstance(resources, DictionaryObject)
+    resources[NameObject("/XObject")] = NullObject()
+    buffer = io.BytesIO()
+    writer.write(buffer)
+    assert (
+        "Revenue 123"
+        in parse_pdf_document(PDFDocumentInput(document_id="null-resource", content=buffer.getvalue()))[0].text
+    )
