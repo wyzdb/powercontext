@@ -27,3 +27,4 @@ evidence/tmp/
 __pycache__/
 *.py[cod]
 .venv/
+data/pc_scopes.json
