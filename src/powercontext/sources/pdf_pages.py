@@ -83,6 +83,18 @@ def pdf_page_source_id(document_id: str, document_sha256: str, page_number: int,
     return source_id
 
 
+def _extract_page_text(page: Any) -> str:
+    """Extract one page, tolerating a single malformed page in an otherwise valid PDF."""
+
+    try:
+        return page.extract_text() or ""
+    except Exception:
+        try:
+            return page.extract_text(extraction_mode="layout") or ""
+        except Exception:
+            return ""
+
+
 def parse_pdf_document(value: PDFDocumentInput, /) -> tuple[PDFPageInput, ...]:
     """Extract every physical page from one complete PDF or fail atomically."""
 
@@ -103,7 +115,7 @@ def parse_pdf_document(value: PDFDocumentInput, /) -> tuple[PDFPageInput, ...]:
                 document_id=value.document_id,
                 document_sha256=document_sha256,
                 page_number=index,
-                text=reader.pages[index - 1].extract_text() or "",
+                text=_extract_page_text(reader.pages[index - 1]),
             )
             for index in range(1, page_count + 1)
         )
