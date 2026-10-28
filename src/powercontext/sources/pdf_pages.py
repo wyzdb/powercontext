@@ -25,9 +25,10 @@ import io
 import json
 import math
 import re
+import zlib
 from collections import Counter
 from itertools import pairwise
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -42,6 +43,9 @@ from powercontext.builtin.runtime.models import (
 from powercontext.sources import AdapterSourceDefinition
 from powercontext.sources.models import Source, SourceMaterialization
 from powercontext.sources.projections import TEXT_EVIDENCE_PROJECTION_KEY, TextEvidence
+
+if TYPE_CHECKING:
+    from pypdf.generic import DictionaryObject, StreamObject
 
 
 class PDFDocumentInput(BaseModel):
@@ -78,6 +82,68 @@ class PDFPageInput(BaseModel):
         return value
 
 
+def _validate_flate_stream(stream: StreamObject) -> None:
+    """Reject truncated/corrupt zlib data that pypdf recovers as partial text."""
+    from pypdf.filters import decode_stream_data
+    from pypdf.generic import ArrayObject, DictionaryObject, EncodedStreamObject, NameObject, NullObject
+
+    value = stream.get("/Filter")
+    if value is None:
+        return
+    value = value.get_object()
+    filters = tuple(name.get_object() for name in value) if isinstance(value, ArrayObject) else (value,)
+    if not any(name in {"/FlateDecode", "/Fl"} for name in filters):
+        return
+    params = stream.get("/DecodeParms")
+    if params is not None:
+        params = params.get_object()
+    if params is None or isinstance(params, NullObject):
+        parameters = (DictionaryObject(),) * len(filters)
+    elif isinstance(params, ArrayObject):
+        parameters = tuple(params)
+    else:
+        parameters = (params,)
+    if len(parameters) != len(filters):
+        raise ValueError("PDF content filters and parameters do not match")  # noqa: TRY003
+    # pypdf's public get_data() deliberately repairs malformed compression. The
+    # pinned StreamObject stores the original encoded bytes in _data; checking
+    # these bytes is necessary before that recovery discards the failure.
+    data = stream._data
+    for name, parameter in zip(filters, parameters, strict=True):
+        if name in {"/FlateDecode", "/Fl"}:
+            decoder = zlib.decompressobj()
+            decoder.decompress(data)
+            decoder.flush()
+            if not decoder.eof:
+                raise ValueError("PDF content has an incomplete Flate stream")  # noqa: TRY003
+        stage = EncodedStreamObject()
+        stage.update(stream)
+        stage[NameObject("/Filter")] = name
+        stage[NameObject("/DecodeParms")] = parameter.get_object()
+        stage._data = data
+        data = decode_stream_data(stage)
+
+
+def _validate_form_streams(resources: DictionaryObject, seen: set[int]) -> None:
+    """Validate compressed text in nested Form XObjects, excluding images."""
+    from pypdf.generic import DictionaryObject, NullObject, StreamObject
+
+    objects = resources.get("/XObject")
+    if objects is None or isinstance(objects.get_object(), NullObject):
+        return
+    for reference in objects.get_object().values():
+        form = reference.get_object()
+        if not isinstance(form, DictionaryObject) or form.get("/Subtype") != "/Form" or id(form) in seen:
+            continue
+        seen.add(id(form))
+        if not isinstance(form, StreamObject):
+            raise TypeError("PDF Form is not a content stream")  # noqa: TRY003
+        _validate_flate_stream(form)
+        nested = form.get("/Resources")
+        if nested is not None and isinstance(nested.get_object(), DictionaryObject):
+            _validate_form_streams(nested.get_object(), seen)
+
+
 def parse_pdf_document(value: PDFDocumentInput) -> tuple[PDFPageInput, ...]:
     """Extract every page, returning nothing if any page cannot be decoded.
 
@@ -85,7 +151,7 @@ def parse_pdf_document(value: PDFDocumentInput) -> tuple[PDFPageInput, ...]:
     synthesis, cross-page joins, truncation, or query-dependent filtering.
     """
     from pypdf import PdfReader
-    from pypdf.generic import ArrayObject, NullObject, StreamObject
+    from pypdf.generic import ArrayObject, DictionaryObject, NullObject, StreamObject
 
     digest = hashlib.sha256(value.content).hexdigest()
     try:
@@ -106,6 +172,11 @@ def parse_pdf_document(value: PDFDocumentInput) -> tuple[PDFPageInput, ...]:
                 )
                 if any(not isinstance(stream.get_object(), StreamObject) for stream in streams):
                     raise ValueError("PDF page has an invalid content stream")  # noqa: TRY003, TRY301
+                for stream in streams:
+                    _validate_flate_stream(stream.get_object())
+            resources = page.get("/Resources")
+            if resources is not None and isinstance(resources.get_object(), DictionaryObject):
+                _validate_form_streams(resources.get_object(), set())
             extracted.append(
                 PDFPageInput(
                     document_id=value.document_id,
