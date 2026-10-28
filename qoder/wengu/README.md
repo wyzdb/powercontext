@@ -62,5 +62,5 @@ python -m uvicorn app.main:app --port 8080
 | 入库 | 23 块 / 40 概念 |
 | 检索 | 验收 5/7，两条排在相邻小节 |
 | 出题判分 | 可用（qwen-plus） |
-| PowerContext | 客户端已写，服务未接入，`/api/profile` 为占位数据 |
+| PowerContext | 已接入（本地构建 `powercontext-server:local`，`127.0.0.1:8000`），`/api/profile` 读真数据 |
 | 网站 | 待通过 Qoder Sites 发布 |

@@ -23,6 +23,8 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 from pymysql import MySQLError
 
+from app import memory as pc
+
 ROOT = Path(__file__).resolve().parents[1]
 WEB_INDEX = ROOT / "web" / "index.html"
 
@@ -241,55 +243,17 @@ def grade(req: GradeRequest):
 
 @app.get("/api/profile/{learner}")
 def profile(learner: str):
-    """占位实现：第 5 轮把函数体换成 app.memory.get_profile(learner)，响应结构不变。"""
+    """读 PowerContext 里该学习者的 scope。服务不可用时明确降级，不伪造数据。"""
     bad = check_learner(learner)
     if bad:
         return bad
-
-    fixtures = {
-        "demo": [
-            {
-                "concept": "cache-coherence",
-                "concept_name": "缓存一致性与伪共享",
-                "count": 3,
-                "status": "新学",
-                "last_wrong_answer": "以为加了 critical 就能解决伪共享",
-                "basis": {
-                    "source_file": "data/raw/01-architecture.md",
-                    "heading_path": "《并行硬件与体系结构》>> 缓存一致性与伪共享",
-                },
-            },
-            {
-                "concept": "message-matching",
-                "concept_name": "消息匹配四条件",
-                "count": 2,
-                "status": "巩固",
-                "last_wrong_answer": "漏了「类型兼容」这一条，以为字节数相同就行",
-                "basis": {
-                    "source_file": "data/raw/03-mpi-basics.md",
-                    "heading_path": "《MPI 点对点通信》>> 点对点通信与消息匹配",
-                },
-            },
-            {
-                "concept": "amdahl-law",
-                "concept_name": "Amdahl 定律与串行天花板",
-                "count": 1,
-                "status": "新学",
-                "last_wrong_answer": "把 s 当成串行时间而不是串行占比",
-                "basis": {
-                    "source_file": "data/raw/02-performance.md",
-                    "heading_path": "《并行性能与可扩展性》>> Amdahl 定律：串行部分的暴政",
-                },
-            },
-        ]
-    }
-
-    weaknesses = fixtures.get(learner, [])
+    mem = pc.get_profile(learner)
     return {
         "learner": learner,
-        "source": "fixture",
-        "source_note": "本轮为占位数据，第 5 轮替换为 PowerContext scope learner:%s" % learner,
-        "cold_start": not weaknesses,
-        "weaknesses": sorted(weaknesses, key=lambda w: -w["count"]),
-        "review_plan": [w["concept_name"] for w in sorted(weaknesses, key=lambda w: -w["count"])],
+        "source": "powercontext" if mem.ok else "unavailable",
+        "memory_ok": mem.ok,
+        "note": mem.note,
+        "weaknesses": mem.items,
+        "count": len(mem.items),
+        "banner": "" if mem.ok else "记忆服务不可用，本次不显示历史弱点",
     }

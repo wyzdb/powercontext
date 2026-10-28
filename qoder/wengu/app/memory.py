@@ -1,35 +1,31 @@
-"""PowerContext 客户端。
+﻿"""PowerContext 客户端。每学习者一个 scope，记忆以结构化 JSON 存在 text 里。
 
-设计（见 docs/01-需求与方案.md §4.7.3）：
-- 4 条路径集中在常量里。端点不确定的风险被限制在 4 行内。
-- 服务不可用时抛 MemoryUnavailable，由上层降级成「本次未记入档案」，
-  **绝不**把记忆兜底写进 seekdb——宁可丢一次记忆，也不能让状态分裂到两个系统。
+真实 API（2026-10-28 实测）：
+    建 scope  POST /v1/scopes              {title, summary, idempotency_key} -> scope_id
+    写记忆    POST /v1/memory/remember     {scope_id, kind, text} -> records[0].artifact.artifact_id
+    列记忆    POST /v1/memory/entries/list {scope_id} -> {entries:[...], next_cursor}
+
+设计要点：
+- scope 按 learner 惰性创建，用 idempotency_key 保证重复调用不产生多个 scope；
+  创建结果缓存在 data/pc_scopes.json，避免每次请求都建。
+- 服务端没有 update 语义，所以「count+1」用追加 + 读取时取最大值实现：
+  同一 concept 的多条记录只认 count 最大的那条。
+- artifact_id 保留下来，供 quiz_attempt.memory_ref 追溯。
 """
 
 from __future__ import annotations
 
 import json
 import os
+import pathlib
 import time
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
 
-
-def _env() -> tuple[str, str]:
-    try:
-        from app.embed import load_env  # 复用它已经读过的 .env
-        load_env()
-    except Exception:
-        pass
-    return (os.getenv("PC_BASE_URL", "").rstrip("/"),
-            os.getenv("PC_TOKEN", ""))
-
-
-BASE, TOKEN = _env()
-PATH_PROFILE = "/scopes/{scope}/memories"
-PATH_UPSERT = "/memories"
-PATH_UPDATE = "/memories/{mid}"
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+CACHE = ROOT / "data" / "pc_scopes.json"
+MARK = "[[wengu]]"
+STATUS_ORDER = ["新学", "巩固", "掌握"]
 
 
 class MemoryUnavailable(RuntimeError):
@@ -40,87 +36,155 @@ class MemoryAuth(RuntimeError):
     pass
 
 
-@dataclass
-class MemoryResult:
-    ok: bool
-    items: list[dict]
-    note: str = ""
+def _base() -> str:
+    try:
+        from app.embed import load_env
+        load_env()
+    except Exception:
+        pass
+    return os.getenv("PC_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
 
 
-def _call(method: str, path: str, payload: dict | None = None) -> dict:
-    base, token = _env()
-    if not base:
-        raise MemoryUnavailable("PC_BASE_URL 未配置")
+def _post(path: str, payload: dict) -> dict:
+    base = _base()
     url = base + path
-    data = json.dumps(payload).encode() if payload is not None else None
-    req = urllib.request.Request(url, data=data, method=method)
+    req = urllib.request.Request(url, data=json.dumps(payload).encode(), method="POST")
     req.add_header("Content-Type", "application/json")
+    token = os.getenv("PC_TOKEN", "")
     if token:
-        req.add_header("Authorization", f"Bearer {token}")
+        req.add_header("Authorization", "Bearer " + token)
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return json.loads(r.read() or b"{}")
+    except urllib.error.HTTPError as e:
+        detail = e.read()[:160].decode("utf-8", "replace")
+        if e.code in (401, 403):
+            raise MemoryAuth("%s %s -> HTTP %d" % (base, path, e.code)) from e
+        raise MemoryUnavailable("%s%s -> HTTP %d: %s" % (base, path, e.code, detail)) from e
+    except json.JSONDecodeError as e:
+        raise MemoryUnavailable("%s%s -> 响应不是合法 JSON" % (base, path)) from e
+    except Exception as e:
+        raise MemoryUnavailable("%s%s -> %s" % (base, path, e)) from e
 
-    last = None
-    for attempt, delay in enumerate((0, 0.5, 1.0, 2.0)):
-        if delay:
-            time.sleep(delay)
+
+def _load_cache() -> dict:
+    if CACHE.exists():
         try:
-            with urllib.request.urlopen(req, timeout=10) as r:
-                body = r.read().decode("utf-8", "replace")
-                return json.loads(body) if body.strip() else {}
-        except urllib.error.HTTPError as e:
-            if e.code in (401, 403):
-                raise MemoryAuth(f"HTTP {e.code}") from e
-            last = e
-        except Exception as e:  # 连接失败、超时
-            last = e
-    raise MemoryUnavailable(str(last))
+            return json.loads(CACHE.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+    return {}
 
 
-def get_profile(learner: str) -> MemoryResult:
-    """读 scope 内全部弱点与进度；服务不在就返回降级结果，不抛给前端。"""
+def scope_for(learner: str) -> str:
+    """每个 learner 一个 scope；首次调用时创建并缓存。"""
+    override = os.getenv("PC_SCOPE_ID", "")
+    if learner == "demo" and override:
+        return override
+    cache = _load_cache()
+    if learner in cache:
+        return cache[learner]
+    data = _post("/v1/scopes", {
+        "title": "wengu learner %s" % learner,
+        "summary": "温故复习教练的学习者 scope，由 app 惰性创建",
+        "idempotency_key": "wengu-scope-%s" % learner,
+    })
+    sid = data.get("scope_id") or data.get("id")
+    if not sid:
+        raise MemoryUnavailable("建 scope 没拿到 scope_id: %s" % json.dumps(data)[:120])
+    cache[learner] = sid
+    CACHE.parent.mkdir(parents=True, exist_ok=True)
+    CACHE.write_text(json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8")
+    return sid
+
+
+def _encode(payload: dict) -> str:
+    return MARK + json.dumps(payload, ensure_ascii=False)
+
+
+def _decode(text: str) -> dict:
+    if text.startswith(MARK):
+        try:
+            return json.loads(text[len(MARK):])
+        except Exception:
+            pass
+    return {"raw": text}
+
+
+def get_entries(learner: str = "demo") -> list[dict]:
+    data = _post("/v1/memory/entries/list", {"scope_id": scope_for(learner)})
+    out = []
+    for e in data.get("entries", []):
+        if e.get("state") not in (None, "active"):
+            continue
+        if e.get("merged_into_id"):
+            continue
+        payload = _decode(e.get("text", ""))
+        payload["artifact_id"] = (e.get("artifact") or {}).get("artifact_id", "")
+        payload["kind"] = e.get("kind", "")
+        out.append(payload)
+    return out
+
+
+def remember(learner: str, kind: str, payload: dict) -> str:
+    data = _post("/v1/memory/remember", {
+        "scope_id": scope_for(learner), "kind": kind, "text": _encode(payload)})
+    recs = data.get("records") or []
+    if recs:
+        return (recs[0].get("artifact") or {}).get("artifact_id", "")
+    return ""
+
+
+def _latest_by_concept(items: list[dict]) -> dict:
+    """同一 concept 可能有多条历史记录，只认 count 最大（同 count 取最新）。"""
+    best = {}
+    for it in items:
+        c = it.get("concept")
+        if not c:
+            continue
+        cur = best.get(c)
+        if cur is None or int(it.get("count", 1)) >= int(cur.get("count", 1)):
+            best[c] = it
+    return best
+
+
+def get_profile(learner: str = "demo") -> dict:
     try:
-        data = _call("GET", PATH_PROFILE.format(scope=f"learner:{learner}"))
-        items = data.get("memories") or data.get("items") or []
-        return MemoryResult(True, items)
+        items = get_entries(learner)
     except (MemoryUnavailable, MemoryAuth) as e:
-        return MemoryResult(False, [], str(e))
+        return {"ok": False, "items": [], "note": str(e)}
+    latest = _latest_by_concept(items)
+    shaped = [{
+        "concept": c,
+        "count": int(v.get("count", 1)),
+        "status": v.get("status", "新学"),
+        "evidence": v.get("evidence", ""),
+        "artifact_id": v.get("artifact_id", ""),
+    } for c, v in latest.items()]
+    shaped.sort(key=lambda x: -x["count"])
+    return {"ok": True, "items": shaped, "note": ""}
 
 
-def upsert_weakness(learner: str, concept: str, wrong_answer: str = "") -> MemoryResult:
-    """错一次就记一次；已存在则 count+1，不新增条目。"""
-    scope = f"learner:{learner}"
+def upsert_weakness(learner: str, concept: str, wrong_answer: str = "") -> dict:
     try:
-        existing = _call("GET", PATH_PROFILE.format(scope=scope) + f"?key=weakness:{concept}")
-        items = existing.get("memories") or []
-        if items:
-            item = items[0]
-            payload = {**item, "count": int(item.get("count", 1)) + 1,
-                       "status": "新学", "last_seen": int(time.time())}
-            _call("PUT", PATH_UPDATE.format(mid=item["id"]), payload)
-        else:
-            _call("POST", PATH_UPSERT, {
-                "scope": scope, "key": f"weakness:{concept}", "type": "weakness",
-                "concept": concept, "count": 1, "status": "新学",
-                "evidence": wrong_answer[:500], "last_seen": int(time.time())})
-        return MemoryResult(True, [])
+        prev = _latest_by_concept(get_entries(learner)).get(concept)
+        count = int(prev.get("count", 0)) + 1 if prev else 1
+        aid = remember(learner, "weakness", {
+            "concept": concept or "未分类", "count": count, "status": "新学",
+            "evidence": wrong_answer[:300], "at": int(time.time())})
+        return {"ok": True, "count": count, "artifact_id": aid, "note": ""}
     except (MemoryUnavailable, MemoryAuth) as e:
-        return MemoryResult(False, [], str(e))
+        return {"ok": False, "count": 0, "artifact_id": "", "note": str(e)}
 
 
-def advance_progress(learner: str, concept: str) -> MemoryResult:
-    scope = f"learner:{learner}"
-    order = ["新学", "巩固", "掌握"]
+def advance_progress(learner: str, concept: str) -> dict:
     try:
-        existing = _call("GET", PATH_PROFILE.format(scope=scope) + f"?key=weakness:{concept}")
-        items = existing.get("memories") or []
-        if not items:
-            return MemoryResult(True, [])
-        item = items[0]
-        cur = item.get("status", "新学")
-        nxt = order[min(order.index(cur) + 1, len(order) - 1)] if cur in order else "新学"
-        payload = {**item, "status": nxt,
-                   "streak_correct": int(item.get("streak_correct", 0)) + 1,
-                   "last_seen": int(time.time())}
-        _call("PUT", PATH_UPDATE.format(mid=item["id"]), payload)
-        return MemoryResult(True, [])
+        prev = _latest_by_concept(get_entries(learner)).get(concept)
+        cur = prev.get("status", "新学") if prev else "新学"
+        nxt = STATUS_ORDER[min(STATUS_ORDER.index(cur) + 1, 2)] if cur in STATUS_ORDER else "新学"
+        aid = remember(learner, "progress", {
+            "concept": concept or "未分类", "count": int(prev.get("count", 1)) if prev else 1,
+            "status": nxt, "evidence": "答对一次", "at": int(time.time())})
+        return {"ok": True, "count": 0, "status": nxt, "artifact_id": aid, "note": ""}
     except (MemoryUnavailable, MemoryAuth) as e:
-        return MemoryResult(False, [], str(e))
+        return {"ok": False, "count": 0, "artifact_id": "", "note": str(e)}
