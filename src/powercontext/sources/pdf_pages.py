@@ -187,13 +187,15 @@ async def search_pdf_pages(
     order = 0
     for query in _search_queries(question):
         result = await memory.search(SearchMemoryRequest(query=query, limit=100, mode="fts"))
-        for hit in result.hits:
+        for rank, hit in enumerate(result.hits):
             key = (hit.entry_id, hit.entry_version_id)
-            score = float(hit.score) if hit.score is not None else 0.0
+            rrf = 1.0 / (60.0 + rank)
             existing = best.get(key)
-            if existing is None or score > existing[0]:
-                best[key] = (score, order, hit)
-            order += 1
+            if existing is None:
+                best[key] = (rrf, order, hit)
+                order += 1
+            else:
+                best[key] = (existing[0] + rrf, existing[1], hit)
 
     ranked = sorted(best.values(), key=lambda item: (-item[0], item[1]))[:100]
     citations = [
@@ -205,30 +207,102 @@ async def search_pdf_pages(
         for _score, _order, hit in ranked
     ]
     try:
-        pages, page_citations = await _page_map(memory)
+        pages, page_citations, page_texts = await _page_map(memory)
     except Exception:
         return tuple(citations[:limit])
     if not pages:
         return tuple(citations[:limit])
 
-    candidates: dict[int, tuple[float, int, MemoryCitation]] = {}
-    for rank, citation in enumerate(citations):
+    centers: list[int] = []
+    for page in _section_pages(question, page_texts):
+        if page not in centers:
+            centers.append(page)
+    for citation in citations:
         page = pages.get((citation.entry_id, citation.entry_version_id))
-        if page is None:
-            continue
-        base = 1.0 / ((rank + 1) ** 0.7)
-        for delta, weight in ((0, 1.0), (1, 1.0), (-1, 1.0), (2, 0.6), (-2, 0.6)):
-            neighbor = page + delta
+        if page is not None and page not in centers:
+            centers.append(page)
+
+    ordered: list[MemoryCitation] = []
+    seen: set[int] = set()
+    for center in centers:
+        for delta in (0, -1, 1):
+            neighbor = center + delta
+            if neighbor in seen:
+                continue
             neighbor_citation = page_citations.get(neighbor)
             if neighbor_citation is None:
                 continue
-            score = base * weight
-            existing = candidates.get(neighbor)
-            if existing is None or score > existing[0]:
-                candidates[neighbor] = (score, rank, neighbor_citation)
+            seen.add(neighbor)
+            ordered.append(neighbor_citation)
+            if len(ordered) >= limit:
+                return tuple(ordered)
+    return tuple(ordered)
 
-    selected = sorted(candidates.values(), key=lambda item: (-item[0], item[1]))[:limit]
-    return tuple(item[2] for item in selected)
+
+def _section_pages(question: str, page_texts: dict[int, str]) -> list[int]:
+    """Find pages with statement/section headings relevant to a finance question."""
+
+    query = question.casefold()
+    headings: list[str] = []
+    if any(word in query for word in ("income", "margin", "revenue", "sales", "earnings", "profit", "ebitda", "loss")):
+        headings.extend(
+            (
+                "consolidated statement of income",
+                "consolidated statements of income",
+                "consolidated statements of comprehensive income",
+                "consolidated balance sheet",
+                "consolidated balance sheets",
+                "consolidated statement of cash flows",
+                "consolidated statements of cash flows",
+                "results of operations",
+                "sales and operating income",
+                "management's discussion and analysis",
+            )
+        )
+    if any(word in query for word in ("product", "service", "business")) and "item 1. business" not in headings:
+        headings.append("item 1. business")
+    if any(word in query for word in ("customer", "concentration")):
+        headings.extend(("customer concentration", "customers"))
+    if any(word in query for word in ("cyclical", "forward-looking", "subject to")):
+        headings.append("forward-looking statements")
+    if any(word in query for word in ("cash", "liquidity", "capex", "capital expenditure", "operating activities")):
+        headings.extend(("consolidated statement of cash flows", "consolidated statements of cash flows"))
+    if any(word in query for word in ("asset", "liabilit", "equity", "debt", "balance sheet")):
+        headings.extend(("consolidated balance sheet", "consolidated balance sheets"))
+    if any(word in query for word in ("legal", "litigation", "lawsuit", "proceeding")):
+        headings.extend(("legal proceedings", "legal proceeding"))
+    if any(word in query for word in ("risk", "uncertaint")):
+        headings.extend(("risk factors", "risk factor"))
+    if any(word in query for word in ("employee", "headcount", "workforce")):
+        headings.append("employees")
+    if any(word in query for word in ("tax rate", "financial performance", "card member", "summary of financial")):
+        headings.append("summary of financial performance")
+    if any(word in query for word in ("securities registered", "registered to trade", "national securities exchange")):
+        return [1]
+    if not headings:
+        return []
+    scored_pages = []
+    financial = any(
+        word in query for word in ("income", "margin", "revenue", "sales", "earnings", "profit", "ebitda", "cash", "asset", "liabilit", "equity")
+    )
+    legal = any(word in query for word in ("legal", "litigation", "lawsuit", "proceeding"))
+    risk = any(word in query for word in ("risk", "uncertaint"))
+    query_terms = set(re.findall(r"[a-z]+", query))
+    for page, text in page_texts.items():
+        lower = text.casefold()
+        if not any(heading in lower for heading in headings):
+            continue
+        if financial:
+            weight = lower.count("$") + len(re.findall(r"\d", lower))
+        elif legal:
+            weight = sum(lower.count(word) for word in ("legal", "litigation", "lawsuit", "proceeding", "claim"))
+        elif risk:
+            weight = sum(lower.count(word) for word in ("risk", "uncertaint"))
+        else:
+            weight = sum(lower.count(term) for term in query_terms)
+        scored_pages.append((weight, page))
+    scored_pages.sort(key=lambda item: (-item[0], item[1]))
+    return [page for _score, page in scored_pages[:8]]
 
 
 async def _page_map(
@@ -236,6 +310,7 @@ async def _page_map(
 ) -> tuple[
     dict[tuple[str, str], int],
     dict[int, MemoryCitation],
+    dict[int, str],
 ]:
     """Map Memory citations to physical PDF pages through their Source identities."""
 
@@ -248,9 +323,10 @@ async def _page_map(
     try:
         entries = await memory.list()
     except Exception:
-        return {}, {}
+        return {}, {}, {}
     by_citation: dict[tuple[str, str], int] = {}
     by_page: dict[int, MemoryCitation] = {}
+    by_text: dict[int, str] = {}
     for record in entries.entries:
         citation = MemoryCitation(
             memory_ref=record.memory_ref,
@@ -270,11 +346,12 @@ async def _page_map(
             continue
         by_citation[(citation.entry_id, citation.entry_version_id)] = page
         by_page[page] = citation
+        by_text[page] = record.entry.text
     try:
-        setattr(memory, "_pdf_page_citation_map", (by_citation, by_page))
+        setattr(memory, "_pdf_page_citation_map", (by_citation, by_page, by_text))
     except Exception:
         pass
-    return by_citation, by_page
+    return by_citation, by_page, by_text
 
 
 _STOPWORDS = frozenset(
