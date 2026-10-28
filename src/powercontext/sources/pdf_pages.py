@@ -306,6 +306,7 @@ def _section_pages(question: str, page_texts: dict[int, str]) -> list[int]:
             continue
         if financial:
             weight = lower.count("$") + len(re.findall(r"\d", lower))
+            weight += 100 * sum(1 for term in query_terms if term in lower)
         elif legal:
             weight = sum(lower.count(word) for word in ("legal", "litigation", "lawsuit", "proceeding", "claim"))
         elif risk:
