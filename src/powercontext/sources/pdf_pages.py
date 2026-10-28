@@ -77,7 +77,7 @@ def parse_pdf_document(value: PDFDocumentInput) -> tuple[PDFPageInput, ...]:
         raise ValueError("PDF requires a nonblank document ID and complete file bytes")  # noqa: TRY003
     digest = hashlib.sha256(value.content).hexdigest()
     try:
-        reader = PdfReader(io.BytesIO(value.content), strict=True)
+        reader = PdfReader(io.BytesIO(value.content), strict=False)
         if reader.is_encrypted and not reader.decrypt(""):
             raise ValueError("PDF needs a nonempty password")  # noqa: TRY003, TRY301
         return tuple(
@@ -169,11 +169,16 @@ async def search_pdf_pages(
     issuer_queries = pdf_issuer_queries(document_ids, question)
     if issuer_queries:
         # A fixed top-k can discard a long financial table before body reranking.
-        # Fetch the matched issuer's pages up to the real scope size instead.
-        capacity = await memory.capacity()
+        # Fetch the matched issuer's pages up to a bounded scope size.
+        try:
+            capacity = await memory.capacity()
+            scope_size = int(capacity.active_entry_count)
+        except Exception:
+            scope_size = 500
+        search_limit = max(80, min(scope_size, 500))
         for query in issuer_queries:
             result = await memory.search(
-                SearchMemoryRequest(query=query, mode="fts", limit=max(80, capacity.active_entry_count))
+                SearchMemoryRequest(query=query, mode="fts", limit=search_limit)
             )
             for hit in result.hits:
                 identity = (hit.memory_ref.artifact_id, hit.entry_id, hit.entry_version_id)
