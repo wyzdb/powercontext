@@ -1,0 +1,29 @@
+# ===== 密钥 =====
+.env
+.env.*
+!.env.example
+
+# ===== 私有资料：一律不提交 =====
+# data/local/ 放课程原件、教材、私有语料，整棵树都不进仓库
+data/local/
+# 防呆：任何 Word / PDF 原件都不该进仓库
+*.doc
+*.docx
+*.pdf
+*.ppt
+*.pptx
+
+# ===== 处理私有数据的脚本 =====
+scripts/local/
+
+# ===== 运行时产物 =====
+data/seekdb/
+*.log
+data/*.db
+.pytest_cache/
+evidence/tmp/
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+.venv/
