@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>温故 · 讲义复习教练</title>
+<style>
+  :root {
+    --bg: #f6f5f1; --card: #fff; --ink: #211f1c; --muted: #6d6862;
+    --line: #e2ded6; --accent: #2f5d54; --warn: #99502a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0 0 64px; background: var(--bg); color: var(--ink);
+    font: 16px/1.7 "Songti SC", "Noto Serif CJK SC", serif;
+  }
+  header {
+    padding: 28px 24px 20px; border-bottom: 1px solid var(--line); background: var(--card);
+  }
+  header h1 { margin: 0; font-size: 22px; letter-spacing: 2px; }
+  header p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+  main { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+  section { margin-top: 28px; background: var(--card); border: 1px solid var(--line);
+            border-radius: 6px; padding: 18px 20px; }
+  h2 { margin: 0 0 4px; font-size: 17px; letter-spacing: 1px; }
+  .sub { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+  .row { display: flex; gap: 8px; }
+  input[type=text] {
+    flex: 1; padding: 9px 11px; font: inherit; font-size: 15px; color: var(--ink);
+    background: #fbfaf7; border: 1px solid var(--line); border-radius: 4px;
+  }
+  input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  button {
+    padding: 9px 16px; font: inherit; font-size: 14px; cursor: pointer;
+    color: #fff; background: var(--accent); border: 0; border-radius: 4px;
+  }
+  button:disabled { background: var(--muted); cursor: progress; }
+  button.ghost {
+    background: transparent; color: var(--accent); border: 1px solid var(--accent);
+    padding: 4px 10px; font-size: 13px;
+  }
+  .status { margin: 12px 0 0; font-size: 13px; color: var(--muted); min-height: 20px; }
+  .status.bad { color: var(--warn); }
+  details {
+    margin-top: 10px; border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    border-radius: 4px; background: #fbfaf7;
+  }
+  summary {
+    padding: 10px 12px; cursor: pointer; font-size: 14px; list-style: none;
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "原文"; font-size: 11px; color: var(--accent);
+                    border: 1px solid var(--accent); border-radius: 3px; padding: 0 4px; }
+  .path { font-weight: bold; }
+  .file { color: var(--muted); font-size: 12px; font-family: ui-monospace, Consolas, monospace; }
+  .badge { font-size: 11px; color: var(--muted); background: #eceae4;
+           border-radius: 3px; padding: 1px 6px; }
+  .badge.weak { background: #f6e3d6; color: var(--warn); }
+  .body { padding: 4px 14px 14px; border-top: 1px dashed var(--line);
+          white-space: pre-wrap; font-size: 14px; }
+  ol, ul.tight { margin: 8px 0 0; padding-left: 20px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left;
+           vertical-align: top; }
+  th { font-size: 12px; color: var(--muted); font-weight: normal; letter-spacing: 1px; }
+  .empty { color: var(--muted); font-size: 14px; }
+  .foot { margin: 18px 24px 0; color: var(--muted); font-size: 12px; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>温故</h1>
+  <p>把一份讲义变成会记住你弱点的复习教练 · 语料：并行计算 6 篇 / 23 节</p>
+</header>
+
+<main>
+  <section>
+    <h2>提问</h2>
+    <p class="sub">答案只从讲义里来。每条结果都可点开看原文与出处；查不到就直说查不到。</p>
+    <div class="row">
+      <input id="q" type="text" placeholder="例如：死锁" autocomplete="off">
+      <button id="ask">检索</button>
+    </div>
+    <p id="askStatus" class="status"></p>
+    <div id="citations"></div>
+  </section>
+
+  <section>
+    <h2>出题</h2>
+    <p class="sub">按概念出一道题，答完让模型判分。答错会记进弱点——前提是 PowerContext 已接入。</p>
+    <div class="row">
+      <input id="quizConcept" type="text" value="伪共享" placeholder="概念，例如：伪共享" autocomplete="off">
+      <button id="quizBtn">出题</button>
+    </div>
+    <p id="quizStatus" class="status"></p>
+    <div id="quizBox" hidden>
+      <p id="quizQ" style="font-weight:600;line-height:1.7"></p>
+      <textarea id="quizA" rows="3" placeholder="写下你的答案"
+        style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ded8cc;border-radius:8px;font:inherit;background:#fffefb"></textarea>
+      <p><button id="gradeBtn">提交判分</button></p>
+      <p id="gradeStatus" class="status"></p>
+    </div>
+  </section>
+
+  <script>
+  (function () {
+    const base = location.protocol.startsWith("http") ? "" : "http://127.0.0.1:8080";
+    const $ = (id) => document.getElementById(id);
+    let reference = "";
+
+    $("quizBtn").onclick = async () => {
+      const concept = ($("quizConcept").value || "").trim() || "伪共享";
+      $("quizStatus").textContent = "生成中，可能要几秒…";
+      try {
+        const res = await fetch(base + "/api/quiz?concept=" + encodeURIComponent(concept));
+        const d = await res.json();
+        if (!res.ok) { $("quizStatus").textContent = d.message || "出题失败"; return; }
+        reference = d.reference || "";
+        $("quizQ").textContent = d.question;
+        $("quizBox").hidden = false;
+        $("quizStatus").textContent = "出处：" + (d.source || "—") +
+          (d.llm_used ? "（模型生成）" : "（模板兜底，可能被限流）");
+      } catch (e) { $("quizStatus").textContent = "出题失败：" + e; }
+    };
+
+    $("gradeBtn").onclick = async () => {
+      const answer = ($("quizA").value || "").trim();
+      if (!answer) { $("gradeStatus").textContent = "先写点答案"; return; }
+      $("gradeStatus").textContent = "判分中…";
+      try {
+        const res = await fetch(base + "/api/grade", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            learner: "demo",
+            concept: ($("quizConcept").value || "").trim(),
+            question: $("quizQ").textContent,
+            reference: reference, answer: answer
+          })
+        });
+        const d = await res.json();
+        $("gradeStatus").textContent = (d.correct ? "✅ 对：" : "❌ 错：") + (d.feedback || "") +
+          (d.memory_ok ? "" : "（记忆未写入：" + (d.memory_note || "PC 未接入") + "）");
+      } catch (e) { $("gradeStatus").textContent = "判分失败：" + e; }
+    };
+  })();
+  </script>
+
+  <section>
+    <h2>今日复习</h2>
+    <p class="sub">按「错得最多」排序。点一下就把概念名填进提问框并检索，直接回到原文。</p>
+    <p id="planNote" class="empty">加载中…</p>
+    <ul class="tight" id="plan"></ul>
+  </section>
+
+  <section>
+    <h2>我的弱点</h2>
+    <p class="sub"> learner = <span id="who"></span>。<span id="profileNote"></span></p>
+    <table>
+      <thead><tr><th>概念</th><th>次数</th><th>状态</th><th>上次错答</th></tr></thead>
+      <tbody id="weakBody"></tbody>
+    </table>
+  </section>
+
+  <p class="foot">提问 → POST /api/ask → seekdb 混合检索 ｜ 弱点 → GET /api/profile（当前为占位数据，第 5 轮接 PowerContext）</p>
+</main>
+
+<script>
+// 直接双击打开本文件时 location.protocol 是 file:，退回默认端口
+const API = location.protocol.startsWith("http") ? "" : "http://127.0.0.1:8080";
+const LEARNER = new URLSearchParams(location.search).get("learner") || "demo";
+
+const $ = (id) => document.getElementById(id);
+$("who").textContent = LEARNER;
+
+function el(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined) node.textContent = text;   // 一律用 textContent，数据不进 HTML
+  return node;
+}
+
+function setStatus(node, msg, bad) {
+  node.textContent = msg;
+  node.className = "status" + (bad ? " bad" : "");
+}
+
+async function postJSON(path, body) {
+  const res = await fetch(API + path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || ("HTTP " + res.status));
+  return data;
+}
+
+async function getJSON(path) {
+  const res = await fetch(API + path);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || ("HTTP " + res.status));
+  return data;
+}
+
+function renderCitations(list) {
+  $("citations").replaceChildren();
+  list.forEach((c, i) => {
+    const det = el("details");
+    const sum = el("summary");
+    sum.append(
+      el("span", "path", "[" + (i + 1) + "] " + c.heading_path),
+      el("span", "badge", "doc_id " + c.doc_id),
+      el("span", "badge", "topic " + c.topic),
+      el("span", "badge", "融合 " + c.scores.fused.toFixed(4)),
+      el("span", "badge", "向量 #" + (c.scores.vector_rank ?? "-") + " 全文 #" + (c.scores.fulltext_rank ?? "-")),
+      el("span", "badge" + (c.scores.coverage < 0.25 ? " weak" : ""), "词面覆盖 " + c.scores.coverage),
+      el("span", "file", c.source_file + "  chunk#" + c.chunk_id)
+    );
+    det.append(sum, el("div", "body", c.content));
+    $("citations").append(det);
+  });
+}
+
+async function ask(query) {
+  $("ask").disabled = true;
+  setStatus($("askStatus"), "检索中…");
+  try {
+    const data = await postJSON("/api/ask", { learner: LEARNER, query });
+    renderCitations(data.citations);
+    const tail = " （" + data.latency_ms + "ms）";
+    setStatus($("askStatus"), data.message + tail, data.citations.length === 0);
+  } catch (exc) {
+    renderCitations([]);
+    setStatus($("askStatus"), "失败：" + exc.message, true);
+  } finally {
+    $("ask").disabled = false;
+  }
+}
+
+async function loadProfile() {
+  try {
+    const data = await getJSON("/api/profile/" + encodeURIComponent(LEARNER));
+    $("profileNote").textContent = data.cold_start
+      ? "还没有记录，先提问或做几道题。"
+      : "共 " + data.weaknesses.length + " 个概念有记录。";
+
+    const body = $("weakBody");
+    body.replaceChildren();
+    data.weaknesses.forEach((w) => {
+      const tr = el("tr");
+      tr.append(
+        el("td", null, w.concept_name),
+        el("td", null, "错 " + w.count + " 次"),
+        el("td", null, w.status),
+        el("td", null, w.last_wrong_answer)
+      );
+      body.append(tr);
+    });
+    if (!data.weaknesses.length) {
+      const tr = el("tr");
+      const td = el("td", "empty", "（空）");
+      td.colSpan = 4;
+      tr.append(td);
+      body.append(tr);
+    }
+
+    const plan = $("plan");
+    plan.replaceChildren();
+    $("planNote").textContent = data.cold_start
+      ? "新学习者：先在提问区问一个概念，系统才有依据安排复习。"
+      : "建议顺序：" + data.review_plan.join(" → ");
+    data.weaknesses.forEach((w) => {
+      const li = el("li");
+      li.append(
+        el("span", null, w.concept_name + "  "),
+        el("button", "ghost", "复习")
+      );
+      li.querySelector("button").onclick = () => {
+        $("q").value = w.concept_name;
+        ask(w.concept_name);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+      plan.append(li);
+    });
+  } catch (exc) {
+    $("planNote").textContent = "读档案失败：" + exc.message;
+  }
+}
+
+$("ask").onclick = () => { const v = $("q").value.trim(); if (v) ask(v); };
+$("q").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { const v = $("q").value.trim(); if (v) ask(v); }
+});
+
+loadProfile();
+</script>
+</body>
+</html>

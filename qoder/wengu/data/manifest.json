@@ -1,0 +1,82 @@
+{
+  "generated_at": "2026-10-27T12:12:33+00:00",
+  "corpus": "sample-notes",
+  "license": "CC-BY-4.0",
+  "note": "本语料为项目原创编写的示例讲义，不含任何第三方材料与个人信息。",
+  "total_chars": 12699,
+  "total_sections": 23,
+  "docs": [
+    {
+      "doc_id": "01-architecture",
+      "title": "并行硬件与体系结构",
+      "doc_type": "讲义",
+      "course": "parallel-computing",
+      "language": "zh",
+      "file": "data/raw/01-architecture.md",
+      "chars": 1717,
+      "cjk": 1063,
+      "sections": 4,
+      "est_chunks": 4
+    },
+    {
+      "doc_id": "02-performance",
+      "title": "并行性能与可扩展性",
+      "doc_type": "讲义",
+      "course": "parallel-computing",
+      "language": "zh",
+      "file": "data/raw/02-performance.md",
+      "chars": 1626,
+      "cjk": 835,
+      "sections": 4,
+      "est_chunks": 4
+    },
+    {
+      "doc_id": "03-mpi-basics",
+      "title": "MPI 点对点通信",
+      "doc_type": "讲义",
+      "course": "parallel-computing",
+      "language": "zh",
+      "file": "data/raw/03-mpi-basics.md",
+      "chars": 2728,
+      "cjk": 1227,
+      "sections": 4,
+      "est_chunks": 6
+    },
+    {
+      "doc_id": "04-collectives",
+      "title": "MPI 集合通信",
+      "doc_type": "讲义",
+      "course": "parallel-computing",
+      "language": "zh",
+      "file": "data/raw/04-collectives.md",
+      "chars": 2143,
+      "cjk": 989,
+      "sections": 4,
+      "est_chunks": 5
+    },
+    {
+      "doc_id": "05-openmp",
+      "title": "OpenMP 与共享内存编程",
+      "doc_type": "讲义",
+      "course": "parallel-computing",
+      "language": "zh",
+      "file": "data/raw/05-openmp.md",
+      "chars": 2789,
+      "cjk": 1114,
+      "sections": 4,
+      "est_chunks": 6
+    },
+    {
+      "doc_id": "06-design",
+      "title": "并行算法设计方法",
+      "doc_type": "讲义",
+      "course": "parallel-computing",
+      "language": "zh",
+      "file": "data/raw/06-design.md",
+      "chars": 1696,
+      "cjk": 1092,
+      "sections": 3,
+      "est_chunks": 4
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>温故 · Commit 时间线</title>
+<style>
+  body {
+    font-family: "Consolas", "Monaco", monospace;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 20px;
+    margin: 0;
+  }
+  .terminal {
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .prompt {
+    color: #4ec9b0;
+  }
+  .commit {
+    margin: 4px 0;
+  }
+  .hash {
+    color: #569cd6;
+  }
+  .msg {
+    color: #d4d4d4;
+  }
+  .branch {
+    color: #ce9178;
+  }
+  .graph {
+    color: #6a9955;
+  }
+  h1 {
+    color: #fff;
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+  .info {
+    color: #808080;
+    font-size: 12px;
+    margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+<h1>温故项目 · Commit 时间线</h1>
+<div class="terminal">
+  <div><span class="prompt">$</span> git log --oneline --graph feat/qoder-wengu</div>
+  <div class="commit"><span class="graph">*</span> <span class="hash">8e463c73</span> <span class="branch">(HEAD -> feat/qoder-wengu)</span> <span class="msg">fix(wengu): 对齐 memory 返回值类型</span></div>
+  <div class="commit"><span class="graph">*</span> <span class="hash">de721d7f</span> <span class="msg">chore(wengu): pc_scopes.json 是运行时状态，不纳入版本控制</span></div>
+  <div class="commit"><span class="graph">*</span> <span class="hash">21d8e00a</span> <span class="msg">feat(wengu): 接入 PowerContext 真实记忆，文档同步，修复 .env 粘行</span></div>
+  <div class="commit"><span class="graph">*</span> <span class="hash">5f422a0b</span> <span class="msg">chore(wengu): PowerContext 服务跑通，记忆闭环验证</span></div>
+  <div class="commit"><span class="graph">*</span> <span class="hash">0edb0009</span> <span class="msg">feat(wengu): 检索、出题判分、Web 界面</span></div>
+  <div class="commit"><span class="graph">*</span> <span class="hash">b0f21865</span> <span class="msg">feat(gaode): add nearby place recommendation skill</span></div>
+  <div class="commit"><span class="graph">*</span> <span class="hash">d647275c</span> <span class="msg">chore: initialize 2026 competition ecosystem directories</span></div>
+</div>
+<div class="info">
+  <p>分支：feat/qoder-wengu</p>
+  <p>温故相关 commit：5 个（0edb0009 ~ 8e463c73）</p>
+  <p>开发时间：2026-10-28</p>
+</div>
+</body>
+</html>

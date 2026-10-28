@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 8 轮 · 交付打包 — 温故</title>
+<style>
+:root{
+  --bg:#1e1e1e; --panel:#252526; --panel2:#2d2d30; --line:#3a3a3a;
+  --fg:#d4d4d4; --dim:#8a8a8a; --title:#ffffff;
+  --green:#4ec98b; --teal:#2f5d50; --blue:#569cd6; --yellow:#dcdcaa;
+  --orange:#d69d5a; --red:#f07171; --purple:#c58af0; --comment:#6a8a7a;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; padding:30px 22px 46px; background:var(--bg); color:var(--fg);
+  font:14px/1.62 Consolas,Monaco,"SFMono-Regular","Microsoft YaHei Mono","Noto Sans Mono CJK SC",monospace;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1020px;margin:0 auto}
+.crumbs{color:var(--dim);font-size:12.5px;letter-spacing:.4px;margin-bottom:10px}
+.crumbs b{color:var(--green);font-weight:400}
+h1{margin:0 0 8px;font-size:21px;color:var(--title);font-weight:600;letter-spacing:.5px}
+h1 .round{color:var(--green);padding:2px 10px;border-radius:5px;font-size:15px;margin-right:10px;border:1px solid rgba(78,201,139,.3);background:rgba(78,201,139,.14)}
+.meta{color:var(--dim);font-size:13px}
+.meta i{color:var(--fg);font-style:normal}
+header{border-left:3px solid var(--green);padding-left:16px;margin-bottom:26px}
+section{margin:0 0 26px}
+.st{display:flex;align-items:baseline;gap:10px;margin:0 0 11px;color:var(--blue);font-size:13.5px;letter-spacing:1.2px}
+.st .n{display:inline-block;min-width:19px;height:19px;line-height:19px;text-align:center;
+  background:var(--blue);color:#1e1e1e;border-radius:4px;font-size:12px}
+.st .hint{color:var(--dim);letter-spacing:0;font-size:12.5px}
+pre{margin:0;padding:15px 17px;overflow-x:auto;font:13px/1.62 inherit;white-space:pre}
+.prompt{background:var(--panel);border:1px solid var(--line);border-radius:6px;color:#cfcfcf}
+.prompt .k{color:var(--purple)}
+.prompt .s{color:var(--green)}
+.file{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.path{display:flex;justify-content:space-between;gap:14px;background:var(--panel2);
+  padding:7px 15px;color:var(--yellow);font-size:12.5px;border-bottom:1px solid var(--line)}
+.path .ln{color:var(--dim)}
+.file pre{color:#cfd8d3}
+.c{color:var(--comment)} .kw{color:var(--blue)} .ty{color:var(--green)} .nu{color:#d7a86f} .hl{color:var(--yellow)}
+.term{border:1px solid var(--teal);border-radius:6px;overflow:hidden;background:#17191a}
+.tbar{background:var(--teal);color:#eef6f2;padding:6px 15px;font-size:12.5px;letter-spacing:.4px}
+.tbar span{opacity:.8}
+.out{color:#b8e6c8}
+.out .cmd{color:var(--yellow)} .out .ok{color:var(--green)} .out .warn{color:var(--orange)} .out .dim{color:var(--dim)} .out .bad{color:var(--red)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+th{background:var(--panel2);color:var(--title);font-weight:600}
+td.g{color:var(--green)} td.w{color:var(--orange)} td.r{color:var(--red)}
+ul{margin:0;padding-left:20px}
+li{margin:4px 0}
+li b{color:var(--title);font-weight:600}
+.note{margin-top:26px;padding-top:13px;border-top:1px dashed var(--line);color:var(--dim);font-size:12.5px}
+.note code{color:var(--fg);background:var(--panel);padding:1px 5px;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="crumbs">wengu / <b>evidence</b> / qoder / 08</div>
+  <h1><span class="round">第 8 轮</span>交付打包 · 把「能跑」变成「评审能复现」</h1>
+  <div class="meta">日期 <i>2026-10-27</i> · 耗时 <i>1 天</i> · 信用点 <i>~12%</i> · commit <i>chore(wengu): 一键初始化、运行说明与证据索引</i></div>
+</header>
+
+<section>
+  <div class="st"><span class="n">1</span>我这轮的提示词</div>
+<pre class="prompt"><span class="k">【目标】</span>
+  1. 异常矩阵：空 query、超长 query、embedding 超时、seekdb 断开、PC 401、判分非法 JSON ——
+     六种情况逐个给出明确返回，<span class="s">不许 500 裸奔</span>
+  2. <span class="s">scripts/init_demo.sh</span> 一条命令完成 建表 + 导入语料 + 起服务
+  3. docs/02-运行说明与验证样例.md：V1–V4，每条含 输入 / 步骤 / <span class="s">预期结果</span> / 证据路径
+  4. evidence/INDEX.md 索引所有证据文件，标明每个文件对应哪条验收
+  5. 生成站点素材清单与 60 秒演示脚本
+
+<span class="k">【约束】</span>
+- README 的每条命令我都要能<span class="s">直接复制执行</span>
+- secrets 全部走 .env.example 占位，代码与文档里不许出现明文
+- <span class="s">不许为了让测试变绿而降低断言强度</span>；做不到的写进「已知限制」，不掩饰
+
+<span class="k">【验收】</span>干净环境一条命令起；四个验证样例与文档一致</pre>
+</section>
+
+<section>
+  <div class="st"><span class="n">2</span>一键脚本</div>
+  <div class="file">
+    <div class="path"><span>qoder/wengu/scripts/init_demo.sh</span><span class="ln">52 行 · set -e，任一步失败就停</span></div>
+<pre><span class="c">#!/usr/bin/env bash
+# 温故 · 一键初始化脚本
+# 用法：bash scripts/init_demo.sh
+# 前置：Docker 已启动（docker run -d --name seekdb -p 2881:2881 oceanbase/seekdb:latest）</span>
+<span class="kw">set -e</span>
+cd <span class="hl">"$(dirname "$0")/.."</span>
+
+echo <span class="ty">"[1/5] 检查 seekdb 连接..."</span>
+python scripts/smoke_test.py || {
+  echo <span class="ty">"seekdb 未启动。请先运行："</span>
+  echo <span class="hl">"  docker run -d --name seekdb -p 2881:2881 -p 2886:2886 oceanbase/seekdb:latest"</span>
+  exit 1                              <span class="c"># 连不上就到此为止，不往下假装成功</span>
+}
+echo <span class="ty">"[2/5] 安装 Python 依赖..."</span>       <span class="c"># requirements.txt 只有 3 个包</span>
+pip install -q -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+echo <span class="ty">"[3/5] 初始化数据库（建库建表）..."</span>
+python scripts/init_db.py             <span class="c"># 12 条 DDL，与 docs/01 §4.2 一致</span>
+echo <span class="ty">"[4/5] 导入语料（6 篇 / 23 节）..."</span>
+python -m app.ingest                  <span class="c"># 幂等，可重复跑</span>
+echo <span class="ty">"[5/5] 启动服务..."</span>
+python -m uvicorn app.main:app --port <span class="nu">8080</span> --host 0.0.0.0</pre>
+  </div>
+</section>
+
+<section>
+  <div class="st"><span class="n">3</span>异常矩阵<span class="hint">全部实测返回体，统一 {code, message}，不外泄 stack</span></div>
+  <table>
+    <tr><th>情况</th><th>HTTP</th><th>返回体（实录/代码路径）</th><th>上层动作</th></tr>
+    <tr><td>空 query</td><td class="w">400</td><td><code>{"code":"invalid_request","message":"参数不合法: String should have at least 1 character"}</code></td><td>前端提示</td></tr>
+    <tr><td>超长 query &gt; 500 字</td><td class="w">400</td><td><code>{"code":"query_too_long","message":"问题过长，最多 500 字（当前 N 字）"}</code></td><td>前端提示</td></tr>
+    <tr><td>资料里没有这个概念（出题）</td><td class="w">404</td><td><code>{"code":"no_material","message":"资料中没有这个概念"}</code></td><td>不出无依据的题</td></tr>
+    <tr><td>seekdb 断开</td><td class="w">503</td><td><code>{"code":"db_unavailable","message":"seekdb 不可用: …"}</code>（捕获 <span style="color:#c58af0">MySQLError</span>）</td><td>提示查容器</td></tr>
+    <tr><td>embedding / 检索失败</td><td class="w">503</td><td><code>{"code":"embed_unavailable","message":"向量化或检索失败: …"}</code></td><td>问答不可用但不崩</td></tr>
+    <tr><td>检索命中但无证据</td><td class="g">200</td><td><code>{"citations":[],"degraded":"no_evidence","message":"资料中未提及：…"</code></td><td>诚实拒答，不算错误</td></tr>
+    <tr><td>PowerContext 不可用</td><td class="g">200</td><td><code>{"source":"unavailable","memory_ok":false,"banner":"记忆服务不可用，本次不显示历史弱点"}</code></td><td>降级横幅，问答照常</td></tr>
+    <tr><td>判分 LLM 失败</td><td class="g">200</td><td><code>{"correct":false,"feedback":"错 判分失败：…"}</code></td><td>不伪造通过</td></tr>
+    <tr><td>其它未捕获异常</td><td class="r">500</td><td><code>{"code":"internal_error","message":"服务内部错误，请查看服务端日志"}</code></td><td>细节只留服务端</td></tr>
+  </table>
+</section>
+
+<section>
+  <div class="st"><span class="n">4</span>验证样例与本轮产物清单<span class="hint">docs/02 第三节 + 目录实测</span></div>
+  <div class="term">
+    <div class="tbar">bash · 四个样例的预期与实测（V1–V4）</div>
+<pre class="ok out">V1 混合检索命中   输入「非阻塞通信会造成死锁吗」
+   预期 3 条引用，Top1 = 《MPI 点对点通信》&gt;&gt; 死锁的四种典型成因
+   实测 <span class="ok">✓</span> 延迟 618ms，v/f 名次分别为 1/2、2/1、6/4   <span class="warn">✗ qa_log 目前 0 行，日志落库未接</span>
+
+V2 拒绝编造       输入「红烧肉怎么做好吃」/「量子退火」/「股市」
+   预期 「资料中未提及」，0 引用
+   实测 <span class="ok">✓</span> degraded=no_evidence，coverage=0.0 / 覆盖率闸门 0.25
+
+V3 出题与判分     出题「缓存一致性」→ 提交答案 → 判分
+   预期 题面带出处、llm_used=true；答错后记忆条目 +1
+   实测 <span class="ok">✓</span> question=「什么是伪共享（false sharing）？…」
+        source=《并行硬件与体系结构》&gt;&gt; 缓存一致性与伪共享  llm_used=true
+        demo scope 里现存 7 条（含一条 kind=progress, streak=1, status=巩固）
+
+V4 事实核查       输入「Amdahl 定律的加速比上限」
+   预期 Top1 = 《并行性能与可扩展性》&gt;&gt; Amdahl 定律：串行部分的暴政
+   可核对 s=5%、p=8 → <span class="ok">5.93</span>（讲义原表 4.7 是硬伤，已按 §4.6 修订）</pre>
+  </div>
+  <div style="height:14px"></div>
+  <div class="file">
+    <div class="path"><span>交付物清单</span><span class="ln">2026-10-28 目录实测</span></div>
+<pre>docs/    <span class="ty">00-Qoder提示词脚本.md</span>（八轮脚本 · 401 行）
+         <span class="ty">01-需求与方案.md</span>（828 行 · 6 节 + §4.10 实测校正）
+         <span class="ty">02-运行说明与验证样例.md</span>（114 行 · 六步跑通 + V1–V4 + 已知限制）
+app/     embed.py 172 · ingest.py 235 · retrieval.py 150 · memory.py 192 · main.py 261 行
+web/     index.html 299 行（零依赖单文件，四功能区）
+scripts/ <span class="ty">init_db.py</span>(266) <span class="ty">smoke_test.py</span>(186) <span class="ty">init_demo.sh</span>(52) build_manifest.py collect_usage_data.py
+deploy/  docker-compose.yml（seekdb 单服务，2881/2886 + ./data/seekdb）
+evidence/ INDEX.md · DEMO_SCRIPT.md · SCREENSHOT_GUIDE.md · FINAL_CHECKLIST.md ·
+           USAGE_EFFECT_REPORT.md · <span class="hl">qoder/01–08（本轮生成的 8 个 HTML + 对应 md）</span>
+根目录   README.md · QUICK_START.md · PROJECT_SUMMARY.md · FINAL_STATUS.md ·
+         SUBMISSION_GUIDE.md · SUBMISSION_CHECKLIST.md · SUBMISSION_PACKAGE.md · requirements.txt
+
+代码仓库：<span class="ok">https://github.com/wyzdb/powercontext/tree/feat/qoder-wengu</span>
+语料许可：6 篇自编并行计算讲义（1.27 万字 / 23 节），CC BY 4.0，见 data/CORPUS.md
+私有目录：data/local/ 全程未进代码、库、日志与截图；ingest 里有硬断言拦路径</pre>
+  </div>
+</section>
+
+<section>
+  <div class="st"><span class="n">5</span>本轮踩坑与遗留</div>
+  <ul>
+    <li><b>「一条命令起」的前提是路径口径统一</b>：<span style="color:#d7a86f">init_demo.sh</span> 里先 <span style="color:#4ec98b">cd "$(dirname "$0")/.."</span>，否则 .env、data/raw、app 包三处都找不到。</li>
+    <li><b>密钥零明文</b>：requirements + .env.example 只放占位；<span style="color:#d7a86f">DASHSCOPE_API_KEY</span> 只从环境读，缺 Key 时自动走离线 IDF 哈希向量，评审机不配 Key 也能跑通全流程。</li>
+    <li><b>文档与代码会分叉</b>：docs/01 §4.5 整节仍以 <span style="color:#d7a86f">content_seg</span> 为全文索引列，实测索引在 <span style="color:#4ec98b">content</span> 上（§4.10 已校正，正文没同步）；§4.7.3 的 PC 端点表也仍是修正前的版本。</li>
+    <li><b>遗留（不掩饰）</b>：① 提示词要求的 <span style="color:#f07171">pytest ≥ 12 条</span>未落地（无 <span style="color:#d7a86f">tests/</span>，环境里也没装 pytest），目前靠 smoke_test + V1–V4 手工样例兜验收；② <span style="color:#d7a86f">qa_log</span> 仍 0 行，与 docs/02 V1 里「qa_log 有对应记录」的表述不符；③ 前端今日区字段口径待与 <span style="color:#ty">/api/profile</span> 对齐（第 6/7 轮已记）。</li>
+  </ul>
+</section>
+
+<div class="note">
+  复现命令：<code>bash scripts/init_demo.sh</code>（从零到 8080）　·　自检：<code>python scripts/smoke_test.py</code>　·　样例：<code>python -m app.retrieval "非阻塞通信会造成死锁吗" "量子退火适合什么问题"</code>　·　接口：<code>curl localhost:8081/api/profile/demo</code><br>
+  本文件对应截图位：<code>evidence/screenshots/08-交付打包.png</code>　·　本套 8 个 HTML 的重截方式：浏览器打开后按 <code>Ctrl+-</code> 缩到 75%，逐块截 ①②③ 三段
+</div>
+
+</div>
+</body>
+</html>
