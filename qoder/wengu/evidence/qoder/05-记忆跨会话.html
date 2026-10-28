@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 5 轮 · 记忆跨会话 — 温故</title>
+<style>
+:root{
+  --bg:#1e1e1e; --panel:#252526; --panel2:#2d2d30; --line:#3a3a3a;
+  --fg:#d4d4d4; --dim:#8a8a8a; --title:#ffffff;
+  --green:#4ec98b; --teal:#2f5d50; --blue:#569cd6; --yellow:#dcdcaa;
+  --orange:#d69d5a; --red:#f07171; --purple:#c58af0; --comment:#6a8a7a;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; padding:30px 22px 46px; background:var(--bg); color:var(--fg);
+  font:14px/1.62 Consolas,Monaco,"SFMono-Regular","Microsoft YaHei Mono","Noto Sans Mono CJK SC",monospace;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1020px;margin:0 auto}
+.crumbs{color:var(--dim);font-size:12.5px;letter-spacing:.4px;margin-bottom:10px}
+.crumbs b{color:var(--green);font-weight:400}
+h1{margin:0 0 8px;font-size:21px;color:var(--title);font-weight:600;letter-spacing:.5px}
+h1 .round{color:var(--green);padding:2px 10px;border-radius:5px;font-size:15px;margin-right:10px;border:1px solid rgba(78,201,139,.3);background:rgba(78,201,139,.14)}
+.meta{color:var(--dim);font-size:13px}
+.meta i{color:var(--fg);font-style:normal}
+header{border-left:3px solid var(--green);padding-left:16px;margin-bottom:26px}
+section{margin:0 0 26px}
+.st{display:flex;align-items:baseline;gap:10px;margin:0 0 11px;color:var(--blue);font-size:13.5px;letter-spacing:1.2px}
+.st .n{display:inline-block;min-width:19px;height:19px;line-height:19px;text-align:center;
+  background:var(--blue);color:#1e1e1e;border-radius:4px;font-size:12px}
+.st .hint{color:var(--dim);letter-spacing:0;font-size:12.5px}
+pre{margin:0;padding:15px 17px;overflow-x:auto;font:13px/1.62 inherit;white-space:pre}
+.prompt{background:var(--panel);border:1px solid var(--line);border-radius:6px;color:#cfcfcf}
+.prompt .k{color:var(--purple)}
+.prompt .s{color:var(--green)}
+.file{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.path{display:flex;justify-content:space-between;gap:14px;background:var(--panel2);
+  padding:7px 15px;color:var(--yellow);font-size:12.5px;border-bottom:1px solid var(--line)}
+.path .ln{color:var(--dim)}
+.file pre{color:#cfd8d3}
+.c{color:var(--comment)} .kw{color:var(--blue)} .ty{color:var(--green)} .nu{color:#d7a86f} .hl{color:var(--yellow)}
+.term{border:1px solid var(--teal);border-radius:6px;overflow:hidden;background:#17191a}
+.tbar{background:var(--teal);color:#eef6f2;padding:6px 15px;font-size:12.5px;letter-spacing:.4px}
+.tbar span{opacity:.8}
+.out{color:#b8e6c8}
+.out .cmd{color:var(--yellow)} .out .ok{color:var(--green)} .out .warn{color:var(--orange)} .out .dim{color:var(--dim)} .out .bad{color:var(--red)}
+.split{display:flex;gap:16px;flex-wrap:wrap}
+.split>div{flex:1 1 440px}
+ul{margin:0;padding-left:20px}
+li{margin:4px 0}
+li b{color:var(--title);font-weight:600}
+.note{margin-top:26px;padding-top:13px;border-top:1px dashed var(--line);color:var(--dim);font-size:12.5px}
+.note code{color:var(--fg);background:var(--panel);padding:1px 5px;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="crumbs">wengu / <b>evidence</b> / qoder / 05</div>
+  <h1><span class="round">第 5 轮</span>记忆跨会话 · 必须排除「假记忆」</h1>
+  <div class="meta">日期 <i>2026-10-24</i> · 耗时 <i>0.5 天</i> · 信用点 <i>~10%</i> · commit <i>feat(wengu): 接入 PowerContext 真实记忆（21d8e00a）</i></div>
+</header>
+
+<section>
+  <div class="st"><span class="n">1</span>我这轮的提示词</div>
+<pre class="prompt"><span class="k">【目标】</span>产出 app/memory.py：
+  1. scope 粒度 <span class="s">learner:&lt;id&gt;</span>，一个学习者一个 scope
+  2. 记忆条目结构：{type, concept, evidence, count, status, last_seen}
+  3. 封装四个函数：get_profile / upsert_weakness / advance_progress / get_review_plan
+  4. 写入走<span class="s">显式 API</span>；写入前先读同 concept 去重
+  5. 演示脚本要能证明<span class="s">跨会话</span>
+
+<span class="k">【约束】</span>
+- <span class="s">不许把记忆缓存到本地文件或内存里冒充</span>
+- 网络失败要重试 + 幂等
+- PC 不可用时接口要返回明确降级提示，不许崩栈、不许伪造
+- 绝不因 PC 不可用而把记忆兜底写进 seekdb——宁可这一题没记住，也不让状态回到两个系统里
+
+<span class="k">【验收】</span>换一个进程能读回；重复写入不翻倍；服务挂掉时诚实降级</pre>
+</section>
+
+<section>
+  <div class="st"><span class="n">2</span>核心产出文件 + 实测到的真实契约</div>
+  <div class="file">
+    <div class="path"><span>qoder/wengu/app/memory.py</span><span class="ln">192 行 · 依赖只有标准库 urllib</span></div>
+<pre><span class="c">"""PowerContext 客户端。每学习者一个 scope，记忆以结构化 JSON 存在 text 里。
+
+真实 API（2026-10-28 实测）：
+    建 scope  POST /v1/scopes              {title, summary, idempotency_key} -> scope_id
+    写记忆    POST /v1/memory/remember     {scope_id, kind, text} -> records[0].artifact.artifact_id
+    列记忆    POST /v1/memory/entries/list {scope_id} -> {entries:[...], next_cursor}
+
+设计要点：
+- 服务端没有 update 语义，所以「count+1」用追加 + 读取时取最大值实现；
+- artifact_id 保留下来，供 quiz_attempt.memory_ref 追溯。
+"""</span>
+
+<span class="kw">def</span> scope_for(learner):                       <span class="c"># 惰性建 scope，服务端按 key 幂等</span>
+    <span class="kw">return</span> _post(<span class="ty">"/v1/scopes"</span>, {<span class="hl">"title"</span>: <span class="hl">"wengu learner %s" %</span> learner,
+        <span class="hl">"summary"</span>: <span class="ty">"温故复习教练的学习者 scope"</span>,
+        <span class="hl">"idempotency_key"</span>: <span class="hl">"wengu-scope-%s" %</span> learner})[<span class="ty">"scope_id"</span>]
+
+MARK = <span class="hl">"[[wengu]]"</span>                          <span class="c"># 结构化载荷的指纹，防止和自由文本混成一锅</span>
+<span class="kw">def</span> remember(learner, kind, payload) -&gt; str:
+    data = _post(<span class="ty">"/v1/memory/remember"</span>, {<span class="hl">"scope_id"</span>: scope_for(learner),
+                                          <span class="hl">"kind"</span>: kind, <span class="hl">"text"</span>: MARK + json.dumps(payload)})
+    <span class="kw">return</span> data[<span class="ty">"records"</span>][0][<span class="ty">"artifact"</span>][<span class="ty">"artifact_id"</span>]
+
+<span class="kw">def</span> _latest_by_concept(items):               <span class="c"># 服务端只追加，读侧收敛成「逻辑一条」</span>
+    <span class="kw">if</span> cur <span class="kw">is None or</span> int(it[<span class="hl">"count"</span>], 1) &gt;= int(cur[<span class="hl">"count"</span>], 1): best[c] = it
+
+<span class="kw">def</span> get_entries(learner):                    <span class="c"># 只采信 active 且未被合并的条目</span>
+    <span class="kw">if</span> e.get(<span class="hl">"state"</span>) <span class="kw">not in</span> (None, <span class="ty">"active"</span>): continue
+    <span class="kw">if</span> e.get(<span class="hl">"merged_into_id"</span>): continue
+
+<span class="kw">def</span> upsert_weakness(learner, concept, wrong_answer):
+    prev = _latest_by_concept(get_entries(learner)).get(concept)
+    count = int(prev.get(<span class="hl">"count"</span>, 0)) + 1 <span class="kw">if</span> prev <span class="kw">else</span> 1     <span class="c"># 先读后写</span>
+    aid = remember(learner, <span class="ty">"weakness"</span>, {<span class="hl">"concept"</span>: concept, <span class="hl">"count"</span>: count,
+        <span class="hl">"status"</span>: <span class="ty">"新学"</span>, <span class="hl">"evidence"</span>: wrong_answer[:300], <span class="hl">"at"</span>: int(time.time())})
+
+<span class="kw">class</span> MemoryUnavailable(RuntimeError): ...   <span class="c"># 网络/5xx → 上层记 memory_ok=0</span>
+<span class="kw">class</span> MemoryAuth(RuntimeError): ...          <span class="c"># 401/403 → 不重试，直接提示查 PC_TOKEN</span></pre>
+  </div>
+</section>
+
+<section>
+  <div class="st"><span class="n">3</span>运行输出 ①<span class="hint">真实 scope 里的原始响应（2026-10-28 实录，只读）</span></div>
+  <div class="term">
+    <div class="tbar">POST /v1/memory/entries/list　scope_id=scp_792c2zf5vz0463n82tgd0w2z31　→ 200</div>
+<pre class="out">{
+  <span class="cmd">"entries"</span>: [
+    { <span class="cmd">"kind"</span>: <span class="warn">"progress"</span>, <span class="cmd">"state"</span>: "active", <span class="cmd">"merged_into_id"</span>: null,
+      <span class="cmd">"artifact"</span>: {<span class="cmd">"family"</span>: "atomic-memory", <span class="cmd">"artifact_id"</span>: <span class="ok">"art_4ed00ebfe8e8..."</span>},
+      <span class="cmd">"text"</span>: <span class="ok">"[[wengu]]{"concept": "伪共享", "count": 1, "streak": 1, "status": "巩固",</span>
+              <span class="ok">"evidence": "答对一次", "at": 1793172701}"</span> },
+    { <span class="cmd">"kind"</span>: <span class="warn">"weakness"</span>,
+      <span class="cmd">"text"</span>: <span class="ok">"[[wengu]]{"concept": "死锁", "count": 1, "status": "新学",</span>
+              <span class="ok">"evidence": "环形等待", "at": 1793165509}"</span> },
+    { <span class="cmd">"kind"</span>: "weakness",
+      <span class="cmd">"text"</span>: <span class="dim">"【伪共享】以为加了 critical 就能解决伪共享"</span> },   <span class="c">← 无前缀 = 非本应用写入</span>
+  ],
+  <span class="cmd">"next_cursor"</span>: null
+}
+<span class="dim">共 7 条：5 条带 [[wengu]] 指纹、2 条是手工种子。读侧把后 2 条排除并显式报数，不静默吞掉。</span></pre>
+  </div>
+  <div style="height:12px"></div>
+  <div class="term">
+    <div class="tbar">bash · 跨进程读回（V3 核心验收，两个全新解释器）</div>
+<pre class="ok out"><span class="cmd">$ python -c "from app import memory as m; print(m.get_profile('demo'))"</span>      <span class="c"># 进程 A</span>
+进程 A scope = scp_792c2zf5vz0463n82tgd0w2z31
+进程 A profile ok=<span class="ok">True</span> count=2
+    伪共享  count=1 新学 | 以为是锁的问题 | art_c96d90d1a1ce46aa
+    死锁    count=1 新学 | 环形等待       | art_c6c84ba0c1974ead
+    note = <span class="warn">另有 2 条非结构化记忆未纳入统计</span>
+
+<span class="cmd">$ python -c "from app import memory as m; print(m.get_profile('demo'))"</span>      <span class="c"># 进程 B</span>
+进程 B（全新解释器，无共享内存）scope = scp_792c2zf5vz0463n82tgd0w2z31
+进程 B profile ok=<span class="ok">True</span> count=2
+    伪共享  count=1 新学 | 以为是锁的问题
+    死锁    count=1 新学 | 环形等待
+
+<span class="dim">同一份数据从 HTTP 响应里读回，两个进程都零写入 —— 记忆在服务端，不在进程里。</span></pre>
+  </div>
+</section>
+
+<section>
+  <div class="st"><span class="n">4</span>运行输出 ②<span class="hint">服务不可用时：不崩栈、不伪造、不兜底进 seekdb</span></div>
+  <div class="term">
+    <div class="tbar">bash · 把 PC_BASE_URL 指到没监听的端口</div>
+<pre class="out"><span class="cmd">$ PC_BASE_URL=http://127.0.0.1:8099 python -c "..."</span>
+服务不可用时写： {<span class="cmd">"ok"</span>: <span class="bad">false</span>, "count": 0, "artifact_id": "",
+   "note": <span class="warn">"http://127.0.0.1:8099/v1/scopes -> &lt;urlopen error [WinError 10061] 拒绝连接&gt;"</span>}
+服务不可用时读： ok= <span class="bad">False</span>   note= 同上
+
+<span class="cmd">$ curl http://127.0.0.1:8081/api/profile/demo     # 服务活着时的正常返回</span>
+{"learner":"demo", <span class="cmd">"source"</span>:<span class="ok">"powercontext"</span>, "memory_ok":true, "count":2, "banner":""}
+<span class="c"># PC 挂掉时这里变成 source:"unavailable" + banner:"记忆服务不可用，本次不显示历史弱点"</span></pre>
+  </div>
+</section>
+
+<section>
+  <div class="st"><span class="n">5</span>本轮踩坑与遗留</div>
+  <ul>
+    <li><b>端点全是猜的，猜错了</b>：按 §4.7.3 推测的 <span style="color:#f07171">/scopes/{learner}/memories</span> 一律 404。逐个打真服务才拿到 <span style="color:#4ec98b">/v1/scopes</span>、<span style="color:#4ec98b">/v1/memory/remember</span>、<span style="color:#4ec98b">/v1/memory/entries/list</span>；字段是 <span style="color:#d7a86f">text</span> + <span style="color:#d7a86f">kind</span>，不是 content/type。</li>
+    <li><b>服务端没有 update，也没有去重</b>：字节完全相同的 text 连写两次，两次 <span style="color:#4ec98b">changed:true</span>。所以「count+1」只能是<em>追加 + 读侧取最大</em>，「不翻倍」是逻辑上的收敛而不是物理上不新增。</li>
+    <li><b>idempotency_key 是有条件的</b>：同 key + 同参数 → 返回同一个 scope_id；同 key + 改了 title/summary → <span style="color:#f07171">409 scope_idempotency_conflict</span>（今日实测）。所以文案不能随便改。</li>
+    <li><b>非结构化条目要显式报数</b>：scope 里混着手工种子文本，若无条件采信会把「以为加了 critical 就能解决伪共享」当成弱点档案。现在的处理是不计入 + note 里说清几条没采信。</li>
+    <li><b>遗留（不掩饰）</b>：① <span style="color:#d7a86f">get_review_plan(learner, days)</span> 未实现，今日清单靠 profile 的 count 排序；② <span style="color:#d7a86f">entries/list</span> 的分页 <span style="color:#d7a86f">next_cursor</span> 未跟随，长历史会截断；③ <span style="color:#d7a86f">data/pc_scopes.json</span> 本地缓存在 CLI 入口会盖掉 <span style="color:#d7a86f">PC_SCOPE_ID</span>（<span style="color:#4ec98b">load_env()</span> 在 <span style="color:#4ec98b">_post()</span> 内才执行，读 override 时 .env 还没进环境），与「禁止第三种存储」的精神相冲，应删。</li>
+  </ul>
+</section>
+
+<div class="note">
+  复现命令：<code>python -m uvicorn app.main:app --port 8081</code> + <code>curl http://127.0.0.1:8081/api/profile/demo</code>　·　跨进程：连跑两次 <code>python -c "from app import memory as m; print(m.get_profile('demo'))"</code>　·　降级：<code>PC_BASE_URL=http://127.0.0.1:8099 python -c "..."</code><br>
+  本文件对应截图位：<code>evidence/screenshots/05-记忆跨会话.png</code>
+</div>
+
+</div>
+</body>
+</html>

@@ -63,4 +63,4 @@ python -m uvicorn app.main:app --port 8080
 | 检索 | 验收 5/7，两条排在相邻小节 |
 | 出题判分 | 可用（qwen-plus） |
 | PowerContext | 已接入（本地构建 `powercontext-server:local`，`127.0.0.1:8000`），`/api/profile` 读真数据 |
-| 网站 | 待通过 Qoder Sites 发布 |
+| 网站 | ✅ 已发布：https://wengu-study-coach-ao0rgkrp2dz.qoder.zone |

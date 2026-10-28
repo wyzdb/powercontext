@@ -162,7 +162,9 @@ def get_profile(learner: str = "demo") -> dict:
         "artifact_id": v.get("artifact_id", ""),
     } for c, v in latest.items()]
     shaped.sort(key=lambda x: -x["count"])
-    return {"ok": True, "items": shaped, "note": ""}
+    unstructured = sum(1 for it in items if not it.get("concept"))
+    note = ("另有 %d 条非结构化记忆未纳入统计" % unstructured) if unstructured else ""
+    return {"ok": True, "items": shaped, "note": note}
 
 
 def upsert_weakness(learner: str, concept: str, wrong_answer: str = "") -> dict:
@@ -180,11 +182,12 @@ def upsert_weakness(learner: str, concept: str, wrong_answer: str = "") -> dict:
 def advance_progress(learner: str, concept: str) -> dict:
     try:
         prev = _latest_by_concept(get_entries(learner)).get(concept)
-        cur = prev.get("status", "新学") if prev else "新学"
-        nxt = STATUS_ORDER[min(STATUS_ORDER.index(cur) + 1, 2)] if cur in STATUS_ORDER else "新学"
+        streak = int(prev.get("streak", 0)) + 1 if prev else 1
+        # docs §4.7.2：连对 1 次→巩固，累计 3 次→掌握，中间不跳档
+        nxt = "掌握" if streak >= 3 else "巩固"
         aid = remember(learner, "progress", {
             "concept": concept or "未分类", "count": int(prev.get("count", 1)) if prev else 1,
-            "status": nxt, "evidence": "答对一次", "at": int(time.time())})
+            "streak": streak, "status": nxt, "evidence": "答对一次", "at": int(time.time())})
         return {"ok": True, "count": 0, "status": nxt, "artifact_id": aid, "note": ""}
     except (MemoryUnavailable, MemoryAuth) as e:
         return {"ok": False, "count": 0, "artifact_id": "", "note": str(e)}

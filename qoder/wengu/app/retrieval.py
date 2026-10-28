@@ -62,6 +62,7 @@ ft AS (
     AND c.review_status <> 'excluded'
     AND (%(topic)s IS NULL OR c.topic = %(topic)s)
     AND (%(level)s IS NULL OR c.level = %(level)s)
+  ORDER BY fts DESC
   LIMIT %(ncand)s
 ),
 vr AS (SELECT id, ROW_NUMBER() OVER (ORDER BY dist ASC)  AS rn FROM vec),

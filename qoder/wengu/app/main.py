@@ -233,10 +233,12 @@ def grade(req: GradeRequest):
     if not verdict:
         verdict = "对 未配置 LLM，按非空作答记为通过"
 
-    correct = verdict.startswith("对")
+    correct = verdict.startswith(("对", "正确", "基本正确", "部分正确"))
     from app import memory as _mem
-    res = (_mem.advance_progress if correct else _mem.upsert_weakness)(
-        req.learner, req.concept, "" if correct else req.answer)
+    if correct:
+        res = _mem.advance_progress(req.learner, req.concept)
+    else:
+        res = _mem.upsert_weakness(req.learner, req.concept, req.answer)
     return {"correct": correct, "feedback": verdict,
             "memory_ok": res["ok"], "memory_note": res["note"]}
 

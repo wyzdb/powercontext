@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 2 轮 · 连通性验证 — 温故</title>
+<style>
+:root{
+  --bg:#1e1e1e; --panel:#252526; --panel2:#2d2d30; --line:#3a3a3a;
+  --fg:#d4d4d4; --dim:#8a8a8a; --title:#ffffff;
+  --green:#4ec98b; --teal:#2f5d50; --blue:#569cd6; --yellow:#dcdcaa;
+  --orange:#d69d5a; --red:#f07171; --purple:#c58af0; --comment:#6a8a7a;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; padding:30px 22px 46px; background:var(--bg); color:var(--fg);
+  font:14px/1.62 Consolas,Monaco,"SFMono-Regular","Microsoft YaHei Mono","Noto Sans Mono CJK SC",monospace;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1020px;margin:0 auto}
+.crumbs{color:var(--dim);font-size:12.5px;letter-spacing:.4px;margin-bottom:10px}
+.crumbs b{color:var(--green);font-weight:400}
+h1{margin:0 0 8px;font-size:21px;color:var(--title);font-weight:600;letter-spacing:.5px}
+h1 .round{color:var(--green);padding:2px 10px;border-radius:5px;font-size:15px;margin-right:10px;border:1px solid rgba(78,201,139,.3);background:rgba(78,201,139,.14)}
+.meta{color:var(--dim);font-size:13px}
+.meta i{color:var(--fg);font-style:normal}
+header{border-left:3px solid var(--green);padding-left:16px;margin-bottom:26px}
+section{margin:0 0 26px}
+.st{display:flex;align-items:baseline;gap:10px;margin:0 0 11px;color:var(--blue);font-size:13.5px;letter-spacing:1.2px}
+.st .n{display:inline-block;min-width:19px;height:19px;line-height:19px;text-align:center;
+  background:var(--blue);color:#1e1e1e;border-radius:4px;font-size:12px}
+.st .hint{color:var(--dim);letter-spacing:0;font-size:12.5px}
+pre{margin:0;padding:15px 17px;overflow-x:auto;font:13px/1.62 inherit;white-space:pre}
+.prompt{background:var(--panel);border:1px solid var(--line);border-radius:6px;color:#cfcfcf}
+.prompt .k{color:var(--purple)}
+.prompt .s{color:var(--green)}
+.file{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel)}
+.path{display:flex;justify-content:space-between;gap:14px;background:var(--panel2);
+  padding:7px 15px;color:var(--yellow);font-size:12.5px;border-bottom:1px solid var(--line)}
+.path .ln{color:var(--dim)}
+.file pre{color:#cfd8d3}
+.c{color:var(--comment)} .kw{color:var(--blue)} .ty{color:var(--green)} .nu{color:#d7a86f} .hl{color:var(--yellow)}
+.term{border:1px solid var(--teal);border-radius:6px;overflow:hidden;background:#17191a}
+.tbar{background:var(--teal);color:#eef6f2;padding:6px 15px;font-size:12.5px;letter-spacing:.4px}
+.tbar span{opacity:.8}
+.out{color:#b8e6c8}
+.out .cmd{color:var(--yellow)} .out .ok{color:var(--green)} .out .warn{color:var(--orange)} .out .dim{color:var(--dim)} .out .bad{color:var(--red)}
+.split{display:flex;gap:16px;flex-wrap:wrap}
+.split>div{flex:1 1 440px}
+ul{margin:0;padding-left:20px}
+li{margin:4px 0}
+li b{color:var(--title);font-weight:600}
+.note{margin-top:26px;padding-top:13px;border-top:1px dashed var(--line);color:var(--dim);font-size:12.5px}
+.note code{color:var(--fg);background:var(--panel);padding:1px 5px;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="crumbs">wengu / <b>evidence</b> / qoder / 02</div>
+  <h1><span class="round">第 2 轮</span>连通性验证 · 跑通即停，不写业务</h1>
+  <div class="meta">日期 <i>2026-10-21</i> · 耗时 <i>0.5 天</i> · 信用点 <i>~8%</i> · commit <i>feat(wengu): seekdb 连通性自检与降级兜底</i></div>
+</header>
+
+<section>
+  <div class="st"><span class="n">1</span>我这轮的提示词</div>
+<pre class="prompt"><span class="k">【现状】</span>seekdb 已在 127.0.0.1:2881 运行（Docker 容器 seekdb，root 无密码），wengu 库和 9 张表已建好。
+
+<span class="k">【目标】</span>写三个文件，最小连通性验证，不要写任何业务逻辑：
+  1. <span class="s">scripts/smoke_test.py</span> —— 连 seekdb，确认 wengu 库在、9 张表都在，逐张打行数；
+     失败时打印实际连到的 host/port 并以非零码退出
+  2. <span class="s">deploy/docker-compose.yml</span> —— 只含 seekdb 一个服务，端口 2881/2886，数据卷 ./data/seekdb
+  3. <span class="s">.env.example</span> —— SEEKDB_HOST/PORT/USER/PASSWORD、EMBED_DIM=1024
+
+<span class="k">【约束】</span>
+- 不许改 docs/ 和 data/ 下的任何文件
+- 数据库连接参数<span class="s">读 .env，不许硬编码</span>
+- 只用 pymysql，不引入 ORM
+
+<span class="k">【验收】</span>python scripts/smoke_test.py → 逐行打印 9 张表 ok，退出码 0</pre>
+</section>
+
+<section>
+  <div class="st"><span class="n">2</span>核心产出文件<span class="hint">三个，全部新增，未动 docs/ 与 data/</span></div>
+  <div class="file">
+    <div class="path"><span>qoder/wengu/scripts/smoke_test.py</span><span class="ln">186 行 · 依赖只有 pymysql</span></div>
+<pre><span class="kw">def</span> row_count(conn, params, database, table):
+    <span class="c"># 行数一律用 COUNT(*)：information_schema.TABLES.TABLE_ROWS 在 seekdb 上是估算值，</span>
+    <span class="c"># 实测 kb_meta 有 7 行时它报 0，拿它验收会假绿。</span>
+    ...
+
+EXPECTED_TABLES = (<span class="ty">"kb_meta"</span>, <span class="ty">"doc_meta"</span>, <span class="ty">"chunks"</span>, <span class="ty">"concept"</span>, <span class="ty">"chunk_concept"</span>,
+                   <span class="ty">"concept_edge"</span>, <span class="ty">"quiz_item"</span>, <span class="ty">"qa_log"</span>, <span class="ty">"quiz_attempt"</span>)
+
+<span class="c">检查顺序：connect → SCHEMATA 里有没有 wengu → information_schema.TABLES 里 9 张表 →</span>
+<span class="c">          逐张 COUNT(*) → 多出来的表只告警不算失败（可能是别人建的）</span>
+<span class="c">失败路径全部返回 1，且打印「实际连到的 host:port / 用户名 / 密码是否为空」</span></pre>
+  </div>
+  <div style="height:14px"></div>
+  <div class="split">
+    <div class="file">
+      <div class="path"><span>qoder/wengu/deploy/docker-compose.yml</span><span class="ln">seekdb 单服务</span></div>
+<pre><span class="kw">name</span>: wengu-seekdb
+<span class="kw">services</span>:
+  <span class="ty">seekdb</span>:
+    <span class="kw">image</span>: oceanbase/seekdb:latest
+    <span class="kw">container_name</span>: wengu-seekdb
+    <span class="kw">ports</span>: [<span class="nu">"2881:2881"</span>, <span class="nu">"2886:2886"</span>]
+    <span class="kw">volumes</span>: [<span class="nu">"../data/seekdb:/var/lib/oceanbase"</span>]
+    <span class="kw">restart</span>: unless-stopped
+    <span class="kw">healthcheck</span>:              <span class="c"># 镜像里没 mysql 客户端，用 bash TCP 探测</span>
+      test: [<span class="nu">"CMD-SHELL"</span>, <span class="nu">"cat &lt; /dev/null &gt; /dev/tcp/127.0.0.1/2881"</span>]
+<span class="c"># 头注：如果本机已用 docker run 手起过 seekdb，先停掉再起 compose，2881 会撞</span></pre>
+    </div>
+    <div class="file">
+      <div class="path"><span>qoder/wengu/.env.example</span><span class="ln">配置模板 · 不含任何真实密钥</span></div>
+<pre><span class="c"># 复制为 .env 后按本机情况填写：cp .env.example .env</span>
+<span class="c"># .env 已被 .gitignore 挡住，绝不提交。</span>
+
+<span class="kw">SEEKDB_HOST</span>=127.0.0.1
+<span class="kw">SEEKDB_PORT</span>=2881
+<span class="kw">SEEKDB_USER</span>=root
+<span class="kw">SEEKDB_PASSWORD</span>=
+<span class="kw">SEEKDB_DATABASE</span>=wengu
+
+<span class="c"># 维度改动 = 整库重建：chunks.emb 是 VECTOR(1024)，</span>
+<span class="c"># 权威值同时记在 kb_meta.embed_dim</span>
+<span class="kw">EMBED_DIM</span>=1024</pre>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="st"><span class="n">3</span>运行输出<span class="hint">2026-10-28 本机实录：库已含语料，所以行数是真实值而非 0</span></div>
+  <div class="term">
+    <div class="tbar">bash · python scripts/smoke_test.py</div>
+<pre class="ok out"><span class="cmd">$ python scripts/smoke_test.py</span>
+seekdb: ok host=127.0.0.1 port=2881 user=root password=&lt;empty&gt;
+server: ok version=5.7.25-OceanBase seekdb-v1.4.0.0
+database: ok wengu
+table: ok kb_meta        rows=7
+table: ok doc_meta       rows=6
+table: ok chunks         rows=23
+table: ok concept        rows=40
+table: ok chunk_concept  rows=23
+table: ok concept_edge   rows=0
+table: ok quiz_item      rows=0
+table: ok qa_log         rows=0
+table: ok quiz_attempt   rows=0
+tables: ok 9/9 present
+<span class="dim">exit code = 0</span></pre>
+  </div>
+  <div style="height:12px"></div>
+  <div class="term">
+    <div class="tbar">bash · 四条失败路径也要说人话（本轮逐条改坏配置实测）</div>
+<pre class="out"><span class="cmd">$ SEEKDB_PORT=2882 python scripts/smoke_test.py</span>
+<span class="bad">FAIL: 连不上 seekdb: (2003, "Can't connect to MySQL server on '127.0.0.1' ([WinError 10061] ...)"</span>
+      实际参数: host=127.0.0.1 port=2882 user=root password=&lt;empty&gt;
+<span class="dim">exit=1</span>
+
+<span class="cmd">$ SEEKDB_PASSWORD=wrongpass python scripts/smoke_test.py</span>
+<span class="bad">FAIL: 连不上 seekdb: (1045, "Access denied for user 'root'@'…' (using password: YES)")</span>
+      实际参数: host=127.0.0.1 port=2881 user=root password=<span class="warn">&lt;set&gt;</span>   <span class="dim">← 只报有没有设，不回显值</span>
+<span class="dim">exit=1</span>
+
+<span class="cmd">$ SEEKDB_DATABASE=wengu_x python scripts/smoke_test.py</span>
+seekdb: ok host=127.0.0.1 port=2881 user=root password=&lt;empty&gt;
+server: ok version=5.7.25-OceanBase seekdb-v1.4.0.0
+<span class="bad">FAIL: 数据库不存在: wengu_x</span>
+      实际参数: host=127.0.0.1 port=2881 user=root password=&lt;empty&gt;
+<span class="dim">exit=1</span>
+
+<span class="cmd">$ mv .env .env.bak &amp;&amp; python scripts/smoke_test.py</span>
+<span class="bad">FAIL: 未找到 .env: C:\Users\L\powercontext\qoder\wengu\.env</span>
+      先执行: cp .env.example .env 并按本机情况填写
+<span class="dim">exit=1 · 四条路径都不抛 traceback</span></pre>
+  </div>
+</section>
+
+<section>
+  <div class="st"><span class="n">4</span>本轮踩坑</div>
+  <ul>
+    <li><b>TABLES.TABLE_ROWS 会假绿</b>：seekdb 上它是估算值，<span style="color:#d7a86f">kb_meta</span> 实际 7 行时它报 0。改用 <span style="color:#4ec98b">COUNT(*)</span>，并把原因写进注释，免得下次有人改回去。</li>
+    <li><b>healthcheck 里没有 mysql 客户端</b>：镜像 <span style="color:#d7a86f">oceanbase/seekdb:latest</span> 不带，退化成 <span style="color:#4ec98b">/dev/tcp</span> 的 TCP 探活。</li>
+    <li><b>端口撞车</b>：容器数据目录是 <span style="color:#d7a86f">/var/lib/oceanbase</span>，手起容器和 compose 抢 2881；compose 文件头注里写清先停旧的。</li>
+    <li><b>PowerContext 端点当时是猜的</b>：按推测路径打过去全是 404。于是第 3 轮之后把「路径唯一真相」收敛到 memory.py 顶部常量，端点变更只改一行——这个设计在第 5 轮真的救了一次。</li>
+  </ul>
+</section>
+
+<div class="note">
+  复现命令：<code>python scripts/smoke_test.py</code>（退出码 0）　·　<code>docker compose -f deploy/docker-compose.yml up -d</code><br>
+  失败路径复现：<code>SEEKDB_PORT=2882 python scripts/smoke_test.py</code>　·　本文件对应截图位 <code>evidence/screenshots/02-连通性验证.png</code>
+</div>
+
+</div>
+</body>
+</html>
