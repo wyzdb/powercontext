@@ -1,0 +1,5 @@
+command: python -m pytest tests/test_created_after_api.py::test_created_after_combines_with_status_and_paging tests/test_created_after_api.py::test_created_after_filters_orders tests/test_created_after_api.py::test_created_after_includes_the_boundary_day tests/test_created_after_api.py::test_invalid_created_after_returns_400 -q -p no:cacheprovider
+exit: 0
+
+....                                                                     [100%]
+4 passed in 2.12s

@@ -1,0 +1,67 @@
+command: python -m pytest tests/test_created_after_api.py::test_created_after_filters_orders tests/test_created_after_api.py::test_created_after_includes_the_boundary_day tests/test_created_after_api.py::test_invalid_created_after_returns_400 tests/test_created_after_api.py::test_created_after_combines_with_status_and_paging -q -p no:cacheprovider
+exit: 1
+
+FFFF                                                                     [100%]
+================================== FAILURES ===================================
+______________________ test_created_after_filters_orders ______________________
+
+api_base = 'http://127.0.0.1:56006'
+
+    def test_created_after_filters_orders(api_base: str) -> None:
+        status, body = get_json(f"{api_base}/orders?created_after=2026-09-15&page_size=10")
+        assert status == 200
+>       assert [item["id"] for item in body["items"]] == [
+            "ORD-2004",
+            "ORD-2002",
+            "ORD-2003",
+        ]
+E       AssertionError: assert ['ORD-2004', ...', 'ORD-2005'] == ['ORD-2004', ...', 'ORD-2003']
+E         
+E         At index 2 diff: 'ORD-2001' != 'ORD-2003'
+E         Left contains 3 more items, first extra item: 'ORD-2003'
+E         Use -v to get more diff
+
+tests\test_created_after_api.py:16: AssertionError
+________________ test_created_after_includes_the_boundary_day _________________
+
+api_base = 'http://127.0.0.1:56008'
+
+    def test_created_after_includes_the_boundary_day(api_base: str) -> None:
+        _, body = get_json(f"{api_base}/orders?created_after=2026-09-15&page_size=10")
+        ids = [item["id"] for item in body["items"]]
+        assert "ORD-2002" in ids, "an order at 00:00:00 on the boundary day must be included"
+        assert "ORD-2003" in ids, "an order at 23:59:59 on the boundary day must be included"
+>       assert "ORD-2006" not in ids, "the day before the boundary must stay excluded"
+E       AssertionError: the day before the boundary must stay excluded
+E       assert 'ORD-2006' not in ['ORD-2004', 'ORD-2002', 'ORD-2001', 'ORD-2003', 'ORD-2006', 'ORD-2005']
+
+tests\test_created_after_api.py:30: AssertionError
+___________________ test_invalid_created_after_returns_400 ____________________
+
+api_base = 'http://127.0.0.1:56010'
+
+    def test_invalid_created_after_returns_400(api_base: str) -> None:
+        status, body = get_json(f"{api_base}/orders?created_after=2026-13-01")
+>       assert status == 400
+E       assert 200 == 400
+
+tests\test_created_after_api.py:36: AssertionError
+_____________ test_created_after_combines_with_status_and_paging ______________
+
+api_base = 'http://127.0.0.1:56012'
+
+    def test_created_after_combines_with_status_and_paging(api_base: str) -> None:
+        status, body = get_json(
+            f"{api_base}/orders?status=paid&created_after=2026-09-14&page=2&page_size=1"
+        )
+        assert status == 200
+>       assert body["total"] == 2
+E       assert 3 == 2
+
+tests\test_created_after_api.py:46: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_created_after_api.py::test_created_after_filters_orders - A...
+FAILED tests/test_created_after_api.py::test_created_after_includes_the_boundary_day
+FAILED tests/test_created_after_api.py::test_invalid_created_after_returns_400
+FAILED tests/test_created_after_api.py::test_created_after_combines_with_status_and_paging
+4 failed in 2.11s

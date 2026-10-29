@@ -1,0 +1,129 @@
+{
+  "status": "passed",
+  "scope": "native_tests_archived_evidence_and_live_round_consistency",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.12.10",
+  "newest_run_id": "run-20261029T081123882396-4aa9d9",
+  "newest_run_origin": "2026-10-29T08:11:54.636378+00:00",
+  "archived_runs": [
+    "run-20261027T132104443375-2901f0",
+    "run-20261027T132226460027-6a9b05"
+  ],
+  "live_model_called": true,
+  "live_model_request_id": "073232ae526ecd34c40d866df3801cd7",
+  "live_model_base_url": "https://api.minimaxi.com/v1",
+  "live_database_queried": true,
+  "live_database_queries_for_task": 212,
+  "live_queries_recorded_this_round": 48,
+  "live_powercontext_restart": true,
+  "live_powercontext_state_records": 11,
+  "sample_record": "sample-20261029T081154.json",
+  "unchanged_test_files": [
+    "tests/conftest.py",
+    "tests/test_api_listing.py",
+    "tests/test_created_after_api.py",
+    "tests/test_service_listing.py"
+  ],
+  "archived_queries": 277,
+  "tests": [
+    {
+      "label": "before-target",
+      "command": [
+        "C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\py312\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_created_after_api.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "executed_command": [
+        "C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\py312\\python.exe",
+        "-c",
+        "import sys; sys.path.insert(0, r'C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\repo-powercontext\\minimax\\artifacts\\before\\src'); import pytest; raise SystemExit(pytest.main(['tests/test_created_after_api.py']))"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "log": "before-target.log"
+    },
+    {
+      "label": "before-regression",
+      "command": [
+        "C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\py312\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_service_listing.py",
+        "tests/test_api_listing.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "executed_command": [
+        "C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\py312\\python.exe",
+        "-c",
+        "import sys; sys.path.insert(0, r'C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\repo-powercontext\\minimax\\artifacts\\before\\src'); import pytest; raise SystemExit(pytest.main(['tests/test_service_listing.py', 'tests/test_api_listing.py']))"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "before-regression.log"
+    },
+    {
+      "label": "after-full",
+      "command": [
+        "C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\py312\\python.exe",
+        "-m",
+        "pytest",
+        "tests",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "executed_command": [
+        "C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\py312\\python.exe",
+        "-c",
+        "import sys; sys.path.insert(0, r'C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\repo-powercontext\\minimax\\artifacts\\after\\src'); import pytest; raise SystemExit(pytest.main(['tests']))"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "after-full.log"
+    },
+    {
+      "label": "module",
+      "command": [
+        "C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\py312\\python.exe",
+        "-m",
+        "pytest",
+        "tests",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "executed_command": [
+        "C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\py312\\python.exe",
+        "-c",
+        "import sys; sys.path.insert(0, r'C:\\Users\\程伟展\\Documents\\deepseek-harness\\default-workspace\\repo-powercontext\\minimax\\context'); import pytest; raise SystemExit(pytest.main(['tests']))"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "log": "module.log"
+    }
+  ],
+  "snapshot_sources": {
+    "before": {
+      "src\\orderflow\\__init__.py": "8dba97fcad0205e980a2cff57ee2ff8f6e14f644c5c6920c357466877fdb4ce6",
+      "src\\orderflow\\__main__.py": "57e96c7da0910835bae070b7a39f09084edb97b233a9264d61f96be361590d2c",
+      "src\\orderflow\\api.py": "98bf3db08ee370a8cdb76fcf26718118bb45664387bbba6d77b230aada34529e",
+      "src\\orderflow\\models.py": "3caccd7a63ac5b3adad35e094e9b80a61bf98dc5398eccd1734d0479685c6320",
+      "src\\orderflow\\repository.py": "8e2cb8d4d6e8460959242dd7a0ff6636e1568be323bca24a12fec0747ff253e5",
+      "src\\orderflow\\service.py": "326f3e4f4512b00e78fcc3212440d7b2d25cb3a682a81f4038dd5f11ca7f7fae"
+    },
+    "after": {
+      "src\\orderflow\\__init__.py": "8dba97fcad0205e980a2cff57ee2ff8f6e14f644c5c6920c357466877fdb4ce6",
+      "src\\orderflow\\__main__.py": "57e96c7da0910835bae070b7a39f09084edb97b233a9264d61f96be361590d2c",
+      "src\\orderflow\\api.py": "2e289b947f3810953793c4d4800cfb9e4d98a78c287609e4eb2b603f15042d7a",
+      "src\\orderflow\\models.py": "3caccd7a63ac5b3adad35e094e9b80a61bf98dc5398eccd1734d0479685c6320",
+      "src\\orderflow\\repository.py": "8e2cb8d4d6e8460959242dd7a0ff6636e1568be323bca24a12fec0747ff253e5",
+      "src\\orderflow\\service.py": "71631464f5dd1b27bc16499b770a0b9bc15afe0a1b884a76b5e4c13be62e79d6"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # 规有所依：面向软件连续演进的 SDD 上下文管理系统
 
-2026-10-29 交付补充：[提测指导](docs/submission-guide.md)、[本轮原生验证与历史证据边界](docs/native-validation-2026-10-29.md)。本轮 Windows 验证未启动 Linux/数据库，历史服务记录不等于本轮服务重测。
+2026-10-29 交付补充：[提测指导](docs/submission-guide.md)、[真实服务端到端验证](docs/live-e2e-2026-10-29.md)、[本轮原生验证与历史证据边界](docs/native-validation-2026-10-29.md)。本轮已真实拉起 seekdb 容器、PowerContext 服务端与 MiniMax 官方接口完成端到端验证，命令与退出码见 live-e2e 文档。
 
 本目录是「MiniMax × OceanBase 生态题」的提交材料。它实现了一个工程上下文模块：
 给定一条开发任务，从 seekdb 中检索适用的**规格条目**、**需要修改的代码符号**和**验证测试**，
@@ -17,6 +17,11 @@
 | MiniMax（`MiniMax-M3`，OpenAI 兼容接口） | 读取上下文，产出 unified diff，完成 `created_after` 过滤功能 | `records/minimax/*.json`、`records/minimax/*.prompt.md`、`artifacts/change.diff` |
 | seekdb（`v1.4.0.0`，MySQL 协议） | 存储规格条目、代码符号、测试索引与倒排索引；检索查询结果直接构造上下文 | `context/sdd_context/store.py`、`records/seekdb/queries.jsonl`、`sdd_query_log` 表 |
 | PowerContext（`1.4.1` Server + Python Client） | 把任务进展、已完成/待办、验证结果写为 Source，重启后读回并注入上下文 | `context/sdd_context/powercontext_state.py`、`records/powercontext/state.jsonl` |
+
+三者的真实参与证据：2026-10-29 端到端运行（MiniMax 请求 ID `073232ae526ecd34c40d866df3801cd7`、
+seekdb 本任务 212 条查询、PowerContext 新进程读回 `completed` 状态）见
+[`docs/live-e2e-2026-10-29.md`](docs/live-e2e-2026-10-29.md) 与
+`records/native-validation-2026-10-29-live/result.json`。
 
 MiniMax 的接入方式是 HTTP API（`POST {MINIMAX_BASE_URL}/chat/completions`），
 不是只安装组件或只在文档里点名：`records/minimax/` 中每次调用都保存了模型名、请求 ID、
@@ -86,7 +91,7 @@ python scripts/sdd.py doctor
 
 ```dotenv
 MINIMAX_API_KEY=sk-api-...
-MINIMAX_BASE_URL=https://api.minimax.chat/v1
+MINIMAX_BASE_URL=https://api.minimaxi.com/v1
 MINIMAX_MODEL=MiniMax-M3
 SDD_SEEKDB_HOST=127.0.0.1
 SDD_SEEKDB_PORT=2881
@@ -95,6 +100,11 @@ POWERCONTEXT_SERVER_URL=http://127.0.0.1:8765
 POWERCONTEXT_SERVER_DATABASE_KIND=sqlite
 POWERCONTEXT_SERVER_DATABASE_URL=sqlite+aiosqlite:////absolute/path/to/minimax/.state/powercontext.db
 ```
+
+`MINIMAX_BASE_URL` 填 MiniMax 官方 OpenAI 兼容端点：国内站 `https://api.minimaxi.com/v1`
+（本作品 2026-10-29 的真实调用即用它），国际站 `https://api.minimax.io/v1`；
+历史记录中的 `https://api.minimax.chat/v1` 为旧域名，同样可用。三者都指向
+`POST {MINIMAX_BASE_URL}/chat/completions`，Key 与站点需匹配。
 
 `.env` 已在 `.gitignore` 中，不会进入提交。
 
@@ -141,6 +151,31 @@ python scripts/run_sample.py
 ```json
 {"task_id": "task-order-created-after", "outcome": "success", ...}
 ```
+
+### 4.5 本作品已完成的真实端到端验证（2026-10-29）
+
+本作品已在 seekdb `v1.4.0.0` 容器、PowerContext `1.4.1` 服务端与 MiniMax 官方接口
+上真实跑通上述流程，命令、退出码与证据见
+[`docs/live-e2e-2026-10-29.md`](docs/live-e2e-2026-10-29.md)：
+
+| 环节 | 真实结果 |
+| --- | --- |
+| 修改前目标测试 | `4 failed`（`AssertionError: assert 3 == 2`，功能未实现，非环境错误） |
+| MiniMax 调用 | `MiniMax-M3`，请求 ID `073232ae526ecd34c40d866df3801cd7`，产出补丁 2 个文件 |
+| 数据库 | seekdb 容器内建库建表，本任务查询记录 212 条，检索结果进入上下文 |
+| 修改后测试 | 目标 4 passed、回归 17 passed、全量 21 passed |
+| 状态复用 | 新进程 `status` / `build --json` 读回 `completed` 与 2 条验证结果并注入上下文 |
+| 规格更新 | `spec-demo apply` 后上下文出现 v2 与新增条款 `SPEC-ORD-004/R5` |
+
+离线复核（不发起任何服务调用，只校验记录与源码）：
+
+```bash
+python scripts/verify_submission.py
+```
+
+输出 `records/native-validation-2026-10-29-live/result.json`，其中 `live_model_called`、
+`live_database_queried`、`live_powercontext_restart` 三个标记由记录算出。
+该脚本同时复核 2026-10-27 的历史归档记录。
 
 ## 5. 调用入口与输出
 
@@ -196,7 +231,7 @@ python scripts/sdd.py reset-sample --task-id task-order-created-after --clear-st
 
 ```bash
 # 上下文模块自身
-python -m pytest -q                      # 19 passed
+python -m pytest -q                      # 24 passed
 
 # 业务工程（修改前）
 cd business && python -m pytest -q       # 4 failed, 17 passed（目标功能尚未实现）
@@ -217,6 +252,8 @@ cd business && python -m pytest -q       # 21 passed
 | `records/powercontext/state.jsonl` | 状态写入、读取、缺失与重启检查 |
 | `records/tests/` | 目标测试、回归测试、全量测试日志 |
 | `records/sample/` | 验证样例的整体结果 |
+| `records/native-validation-2026-10-29/` | 2026-10-29 离线一致性校验（历史证据） |
+| `records/native-validation-2026-10-29-live/` | 2026-10-29 真实端到端校验结果与测试日志 |
 | `artifacts/before/`、`artifacts/after/`、`artifacts/change.diff` | 修改前后快照与差异 |
 
 ## 9. 已知限制

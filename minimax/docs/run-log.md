@@ -1,5 +1,9 @@
 # 运行日志与代码版本
 
+> 第 1–6 节是 2026-10-27 的历史真实运行记录；第 7 节是 2026-10-29 的真实端到端运行
+> （本轮真实拉起 seekdb 容器、PowerContext 服务端与 MiniMax 官方接口）。
+> 详见 [`live-e2e-2026-10-29.md`](live-e2e-2026-10-29.md)。
+
 ## 1. 环境
 
 | 项 | 值 |
@@ -75,3 +79,38 @@
 | 索引导入 | 6 规格 / 17 条款 / 30 符号 / 20 测试 / 1678 词项，< 1 s |
 | MiniMax 调用 | prompt 4544 tokens，completion 756 tokens，6135 ms |
 | 测试 | 目标 0.5 s，回归 1.2 s，全量 7.6 s |
+
+## 7. 2026-10-29 真实端到端运行
+
+本轮未复用历史记录，而是重新拉起三项服务完整跑了一遍。
+
+| 项 | 值 |
+| --- | --- |
+| 时间 | 2026-10-29 16:10–16:30（Asia/Shanghai） |
+| seekdb | 容器 `quay.io/oceanbase/seekdb:latest`（digest `sha256:4db49618…`），版本 `5.7.25-OceanBase seekdb-v1.4.0.0`，`127.0.0.1:2881` |
+| PowerContext | 1.4.1 Server，`http://127.0.0.1:8765`，SQLite 后端 |
+| MiniMax | `MiniMax-M3`，`https://api.minimaxi.com/v1/chat/completions`，请求 ID `073232ae526ecd34c40d866df3801cd7` |
+| Python | 3.12.10（Windows 11 10.0.26200） |
+
+| 步骤 | 命令 | 退出码 | 结果 |
+| --- | --- | --- | --- |
+| 自检 | `python scripts/sdd.py doctor` | 0 | 三项 `ok: true` |
+| 一键样例 | `python scripts/run_sample.py` | 0 | `outcome: success` |
+| 修改前目标测试 | `python -m pytest tests/test_created_after_api.py -q`（`artifacts/before`） | 1 | `4 failed`（`AssertionError`） |
+| 修改前回归测试 | `python -m pytest tests/test_service_listing.py tests/test_api_listing.py -q`（`artifacts/before`） | 0 | `17 passed` |
+| MiniMax 修改 | `records/minimax/run-20261029T081123882396-4aa9d9.json` | 0 | `api.py` +5、`service.py` +27 行 |
+| 修改后目标测试 | `records/tests/20261029T081135-target.log` | 0 | 4 passed |
+| 修改后回归测试 | `records/tests/20261029T081139-regression.log` | 0 | 17 passed |
+| 全量测试 | `records/tests/20261029T081148-full-suite.log` | 0 | 21 passed |
+| 状态复用 | `python scripts/sdd.py status --task-id task-order-created-after` | 0 | `completed`，2 条验证结果 |
+| 规格更新 | `python scripts/sdd.py spec-demo apply` | 0 | `spec_version=2`，新增 `SPEC-ORD-004/R5` |
+| 规格还原 | `python scripts/sdd.py spec-demo restore` | 0 | 回到 v1 |
+| 一致性校验 | `python scripts/verify_submission.py` | 0 | `status: passed`，live 标记全为 `true` |
+
+本轮采用的修改：`run-20261029T081123882396-4aa9d9`，
+与 2026-10-27 的采纳运行相比，`api.py` 结果相同（sha256 `2e289b947f381095`），
+`service.py` 改写更完整（+27 行，sha256 `71631464f5dd`，历史为 +16 行 `fa39a57c844d`），
+两次都通过同一组目标测试与回归测试。
+
+本任务在 seekdb 的查询记录累计 212 条（2026-10-29 新增 48 条），
+PowerContext 本任务完成态记录 11 条，均可由 `records/` 下的日志核对。

@@ -76,15 +76,21 @@ def parse_min_total(value: str | int) -> int:
 
 
 def parse_created_after(value: str) -> dt.date:
-    """Parse a calendar-date lower bound in ``YYYY-MM-DD`` format."""
+    """Parse the inclusive lower bound on the order creation calendar day."""
 
     try:
-        return dt.datetime.strptime(value, "%Y-%m-%d").date()
+        parsed = dt.datetime.strptime(value, "%Y-%m-%d").date()
     except (TypeError, ValueError) as exc:
         raise QueryError(
             "invalid_created_after",
             f"created_after is not a valid YYYY-MM-DD date: {value!r}",
         ) from exc
+    if parsed.strftime("%Y-%m-%d") != value:
+        raise QueryError(
+            "invalid_created_after",
+            f"created_after is not a valid YYYY-MM-DD date: {value!r}",
+        )
+    return parsed
 
 
 def _sort_key(order: Order) -> tuple[int, str]:
@@ -112,14 +118,19 @@ def list_orders(
     size = parse_page_size(page_size)
     status_token = normalize_status(status) if status is not None else None
     minimum = parse_min_total(min_total) if min_total is not None else None
-    created_after_date = parse_created_after(created_after) if created_after is not None else None
+    created_after_date = (
+        parse_created_after(created_after) if created_after is not None else None
+    )
 
     filtered: Sequence[Order] = [
         order
         for order in orders
         if (status_token is None or order.status == status_token)
         and (minimum is None or order.total_cents >= minimum)
-        and (created_after_date is None or order.created_at[:10] >= created_after_date.isoformat())
+        and (
+            created_after_date is None
+            or dt.datetime.fromisoformat(order.created_at).date() >= created_after_date
+        )
     ]
 
     ordered = sorted(filtered, key=_sort_key)

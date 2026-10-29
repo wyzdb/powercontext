@@ -45,7 +45,7 @@ CLI (scripts/sdd.py)
 
 ## 可验证的结果
 
-- 修改前：4 个目标测试失败（`AttributeError` / 断言失败，不是环境错误），17 个回归测试通过。
+- 修改前：4 个目标测试失败（`AssertionError` / 断言失败，不是环境错误），17 个回归测试通过。
 - 修改后：同一组目标测试 4 passed，回归测试 17 passed，全量 21 passed。
 - 上下文：11 条规格条款、14 个代码符号、4 个待修改符号、4 个目标测试、16 个回归测试。
 - 数据库：一次上下文构建触发 15 次查询，全部记录在 `sdd_query_log`。
@@ -54,3 +54,20 @@ CLI (scripts/sdd.py)
   （`records/powercontext/restart-context.json`）。
 - 规格更新：执行 `spec-demo apply` 后重新导入，输出条款版本从 v1 变为 v2 并出现新增的
   `SPEC-ORD-004/R5`（`records/spec-update/apply.json`），`restore` 后回到 17 条。
+
+## 2026-10-29 的真实服务端到端复跑
+
+以上结论在 2026-10-29 用**真实服务**重新跑过一遍：seekdb `v1.4.0.0` 容器、
+PowerContext `1.4.1` 服务端、MiniMax 官方接口 `https://api.minimaxi.com/v1` 全部在线参与。
+
+| 证据 | 位置 |
+| --- | --- |
+| MiniMax 调用（请求 ID `073232ae526ecd34c40d866df3801cd7`，prompt/响应/补丁） | `records/minimax/run-20261029T081123882396-4aa9d9.*` |
+| 上下文（含 15 次检索查询的来源） | `records/contexts/ctx-20261029T081123817310-24d063.json` |
+| 红/绿测试日志（4 failed → 4 passed、17 passed、21 passed） | `records/tests/20261029T0811*.log` |
+| 状态写入与新进程复用 | `records/powercontext/state.jsonl`、`records/sample/sample-20261029T081154.json` |
+| 离线一致性校验（live 标记由记录算出） | `records/native-validation-2026-10-29-live/result.json` |
+
+两次独立运行由 MiniMax 给出**不同但都通过测试**的补丁（`service.py` +16 行 / +27 行），
+说明验收不依赖模型复现同一份补丁。命令、退出码与环境见
+[`live-e2e-2026-10-29.md`](live-e2e-2026-10-29.md)。

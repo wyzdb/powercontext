@@ -5,3 +5,5 @@ __pycache__/
 .pytest_cache/
 pytest-cache-files-*/
 tests/.tmp/
+artifacts/.verify-tmp/
+business/specs/updates/.backup/
