@@ -196,9 +196,10 @@ def run_tests(
 def validate_code_patch(patch_text: str, business_root: Path) -> None:
     """Reject changes to tests/specs, even if a model ignores the prompt."""
     changes = apply_patch(patch_text, business_root, dry_run=True)
+    source_root = (business_root / "src").resolve()
     for change in changes:
-        relative = Path(change.path)
-        if relative.parts[0] != "src" or relative.suffix != ".py":
+        target = (business_root / change.path).resolve()
+        if source_root not in target.parents or target.suffix != ".py":
             raise PatchError(f"model may modify only existing src/*.py code: {change.path}")
 
 

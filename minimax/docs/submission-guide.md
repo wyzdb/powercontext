@@ -30,7 +30,7 @@ cd minimax
 python scripts/verify_submission.py
 ```
 
-预期：修改前目标 4 failed（功能断言）、修改前回归 17 passed、修改后全量 21 passed、模块 23 passed；脚本自身退出码为 0。前后测试没有改动。结果写入 `records/native-validation-2026-10-29/`。
+预期：修改前目标 4 failed（功能断言）、修改前回归 17 passed、修改后全量 21 passed、模块 24 passed；脚本自身退出码为 0。前后测试没有改动。结果写入 `records/native-validation-2026-10-29/`。
 
 此命令不会调用模型或数据库，不能替代完整端到端验收。
 

@@ -2,7 +2,7 @@ FFFF                                                                     [100%]
 ================================== FAILURES ===================================
 ______________________ test_created_after_filters_orders ______________________
 
-api_base = 'http://127.0.0.1:54659'
+api_base = 'http://127.0.0.1:54573'
 
     def test_created_after_filters_orders(api_base: str) -> None:
         status, body = get_json(f"{api_base}/orders?created_after=2026-09-15&page_size=10")
@@ -21,7 +21,7 @@ E         Use -v to get more diff
 tests\test_created_after_api.py:16: AssertionError
 ________________ test_created_after_includes_the_boundary_day _________________
 
-api_base = 'http://127.0.0.1:54661'
+api_base = 'http://127.0.0.1:54575'
 
     def test_created_after_includes_the_boundary_day(api_base: str) -> None:
         _, body = get_json(f"{api_base}/orders?created_after=2026-09-15&page_size=10")
@@ -35,7 +35,7 @@ E       assert 'ORD-2006' not in ['ORD-2004', 'ORD-2002', 'ORD-2001', 'ORD-2003'
 tests\test_created_after_api.py:30: AssertionError
 ___________________ test_invalid_created_after_returns_400 ____________________
 
-api_base = 'http://127.0.0.1:64897'
+api_base = 'http://127.0.0.1:54577'
 
     def test_invalid_created_after_returns_400(api_base: str) -> None:
         status, body = get_json(f"{api_base}/orders?created_after=2026-13-01")
@@ -45,7 +45,7 @@ E       assert 200 == 400
 tests\test_created_after_api.py:36: AssertionError
 _____________ test_created_after_combines_with_status_and_paging ______________
 
-api_base = 'http://127.0.0.1:54402'
+api_base = 'http://127.0.0.1:54579'
 
     def test_created_after_combines_with_status_and_paging(api_base: str) -> None:
         status, body = get_json(
@@ -61,4 +61,4 @@ FAILED tests\test_created_after_api.py::test_created_after_filters_orders - A...
 FAILED tests\test_created_after_api.py::test_created_after_includes_the_boundary_day
 FAILED tests\test_created_after_api.py::test_invalid_created_after_returns_400
 FAILED tests\test_created_after_api.py::test_created_after_combines_with_status_and_paging
-4 failed in 2.13s
+4 failed in 2.11s

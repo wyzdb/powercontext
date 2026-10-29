@@ -102,7 +102,8 @@ def test_duplicate_file_sections_are_rejected(project_dir: Path) -> None:
     assert (root / "src" / "mod.py").read_text() == "alpha\n"
 
 
-def test_model_patch_cannot_rewrite_test_expectations(project_dir: Path) -> None:
+@pytest.mark.parametrize("relative", ["tests/test_feature.py", "src/../tests/test_feature.py"])
+def test_model_patch_cannot_rewrite_test_expectations(project_dir: Path, relative: str) -> None:
     from sdd_context.pipeline import validate_code_patch
 
     tests = project_dir / "tests"
@@ -110,7 +111,7 @@ def test_model_patch_cannot_rewrite_test_expectations(project_dir: Path) -> None
     target = tests / "test_feature.py"
     target.write_text("assert False\n", encoding="utf-8")
     patch = (
-        "--- a/tests/test_feature.py\n+++ b/tests/test_feature.py\n"
+        f"--- a/{relative}\n+++ b/{relative}\n"
         "@@ -1 +1 @@\n-assert False\n+assert True\n"
     )
     with pytest.raises(PatchError, match="only existing src"):
