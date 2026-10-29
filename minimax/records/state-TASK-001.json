@@ -1,0 +1,21 @@
+{
+  "stage": "context-ready",
+  "specs": ["SPEC-002", "SPEC-001"],
+  "done": [
+    "SPEC-001 / SPEC-002 已导入 seekdb（9 篇文档、8 条引用）",
+    "改前基线已记录：目标测试 7 失败、回归测试 8 通过"
+  ],
+  "todo": [
+    "用 MiniMax-M3.1-Flash 生成 tag 过滤补丁",
+    "应用补丁并跑目标测试与回归测试",
+    "演示规格更新后重新导入，上下文内容跟随变化"
+  ],
+  "verifications": [
+    {
+      "name": "baseline",
+      "command": "pytest -q",
+      "exit_code": 1,
+      "summary": "7 failed, 8 passed"
+    }
+  ]
+}

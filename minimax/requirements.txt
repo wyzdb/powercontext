@@ -1,0 +1,13 @@
+# MiniMax + 上下文模块依赖（Python 3.11+）
+openai==3.41.0
+python-dotenv==1.2.4
+
+# 样例工程与测试
+Flask==3.1.3
+pytest==9.2.0
+
+# seekdb（MySQL 协议）
+PyMySQL==2.2.8
+
+# 任务状态
+powercontext[cli,server]==1.4.1

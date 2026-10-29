@@ -1,0 +1,167 @@
+"""上下文模块命令行入口。
+
+子命令::
+
+    python -m ctx.cli import                      # 把规格/代码/测试导入 seekdb
+    python -m ctx.cli build --task "..." [--out f]  # 生成任务上下文 JSON
+    python -m ctx.cli stats                       # 看库里有什么
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from . import db, importer, patch, retrieve, state
+from .config import DEMO_DIR
+
+
+def _cmd_import(args: argparse.Namespace) -> int:
+    summary = importer.import_all(Path(args.root))
+    print(json.dumps(summary, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _cmd_build(args: argparse.Namespace) -> int:
+    saved_state = state.load(args.task_id) if args.with_state and args.task_id else None
+    context = retrieve.build_context(
+        args.task,
+        root=Path(args.root),
+        state=(saved_state or {}).get("state") if saved_state else None,
+    )
+    if saved_state:
+        context["state_source"] = {
+            "system": "PowerContext",
+            "server": saved_state["server"],
+            "scope_id": saved_state["scope_id"],
+            "artifact": saved_state["artifact"],
+            "revision": saved_state["revision"],
+        }
+    text = json.dumps(context, ensure_ascii=False, indent=2)
+    if args.out:
+        out = Path(args.out)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(text + "\n", encoding="utf-8")
+        print(f"context written to {out}", file=sys.stderr)
+        print(text)
+    else:
+        print(text)
+    return 0
+
+
+def _cmd_state_save(args: argparse.Namespace) -> int:
+    payload = json.loads(Path(args.file).read_text(encoding="utf-8")) if args.file else {}
+    result = state.save(args.task_id, payload)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _cmd_state_load(args: argparse.Namespace) -> int:
+    result = state.load(args.task_id)
+    if result is None:
+        print(json.dumps({"task_id": args.task_id, "found": False}, ensure_ascii=False, indent=2))
+        return 4
+    print(json.dumps({"task_id": args.task_id, "found": True, **result}, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _cmd_patch(args: argparse.Namespace) -> int:
+    context = patch.load_context(args.context)
+    print(json.dumps(patch.summarize(context), ensure_ascii=False, indent=2), file=sys.stderr)
+
+    try:
+        result = patch.generate(context, model=args.model)
+    except Exception as exc:
+        print(f"[patch] 生成失败：{type(exc).__name__}: {exc}", file=sys.stderr)
+        return 3
+
+    print(json.dumps(
+        {
+            "diff_path": str(result.path),
+            "call_id": result.call_id,
+            "latency_ms": result.latency_ms,
+            "usage": result.usage,
+            "diff_bytes": len(result.diff),
+        },
+        ensure_ascii=False,
+        indent=2,
+    ))
+
+    if args.apply:
+        import subprocess
+
+        repo = DEMO_DIR.parent.parent  # powercontext/
+        cmd = ["git", "-C", str(repo), "apply", "--directory", "minimax/demo/taskboard", str(result.path)]
+        check = subprocess.run(cmd[:3] + ["--check"] + cmd[3:], capture_output=True, text=True)
+        if check.returncode != 0:
+            print(f"[patch] git apply --check 失败：{check.stderr.strip()}", file=sys.stderr)
+            return 4
+        applied = subprocess.run(cmd, capture_output=True, text=True)
+        if applied.returncode != 0:
+            print(f"[patch] 应用失败：{applied.stderr.strip()}", file=sys.stderr)
+            return 4
+        print(f"[patch] 已应用到 {DEMO_DIR}")
+    return 0
+
+
+def _cmd_stats(args: argparse.Namespace) -> int:
+    conn = db.connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT kind, COUNT(*) AS n FROM documents GROUP BY kind ORDER BY kind")
+            rows = cur.fetchall()
+            cur.execute("SELECT COUNT(*) AS n FROM spec_refs")
+            refs = cur.fetchone()["n"]
+    finally:
+        conn.close()
+
+    print(json.dumps({"documents": rows, "spec_refs": refs}, ensure_ascii=False, indent=2))
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="ctx", description="SDD 上下文模块")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p_import = sub.add_parser("import", help="导入规格/代码/测试")
+    p_import.add_argument("--root", default=str(DEMO_DIR))
+    p_import.set_defaults(func=_cmd_import)
+
+    p_build = sub.add_parser("build", help="按任务生成上下文")
+    p_build.add_argument("--task", required=True)
+    p_build.add_argument("--task-id", default=None, help="关联任务 ID（读取 PowerContext 状态时需要）")
+    p_build.add_argument("--with-state", action="store_true", help="从 PowerContext 读取任务状态并合并")
+    p_build.add_argument("--root", default=str(DEMO_DIR))
+    p_build.add_argument("--out", default=None, help="同时写入文件")
+    p_build.set_defaults(func=_cmd_build)
+
+    p_state_save = sub.add_parser("state-save", help="把任务状态写入 PowerContext")
+    p_state_save.add_argument("--task-id", required=True)
+    p_state_save.add_argument("--file", default=None, help="状态 JSON 文件")
+    p_state_save.set_defaults(func=_cmd_state_save)
+
+    p_state_load = sub.add_parser("state-load", help="从 PowerContext 读取任务状态")
+    p_state_load.add_argument("--task-id", required=True)
+    p_state_load.set_defaults(func=_cmd_state_load)
+
+    p_patch = sub.add_parser("patch", help="用 MiniMax 生成补丁")
+    p_patch.add_argument("--context", required=True, help="ctx build 产出的上下文 JSON")
+    p_patch.add_argument("--model", default=None)
+    p_patch.add_argument("--apply", action="store_true", help="生成后直接 git apply")
+    p_patch.set_defaults(func=_cmd_patch)
+
+    p_stats = sub.add_parser("stats", help="查看库内统计")
+    p_stats.set_defaults(func=_cmd_stats)
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

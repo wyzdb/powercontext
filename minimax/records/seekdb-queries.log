@@ -1,0 +1,34 @@
+# seekdb 查询记录
+# 时间: 2026-10-29T11:09:18+08:00
+# 目标: 127.0.0.1:2881/mmx_ctx
+
+-- SELECT VERSION()
+5.7.25-OceanBase seekdb-v1.4.0.0
+
+-- SHOW TABLES
+['documents', 'spec_refs', 'task_state']
+
+-- SELECT kind, COUNT(*) ... GROUP BY kind
+[{'kind': 'code', 'n': 4}, {'kind': 'spec', 'n': 2}, {'kind': 'test', 'n': 3}]
+
+   CODE:taskboard/app.py        taskboard/app.py                   43603e06de48
+   CODE:taskboard/cli.py        taskboard/cli.py                   1c30944a619c
+   CODE:taskboard/store.py      taskboard/store.py                 e39cf01cd082
+   CODE:taskboard/__init__.py   taskboard/__init__.py              8c2922023a4f
+   SPEC-001                     specs/SPEC-001-task-list-baseline.md b3c4f7ced811
+   SPEC-002                     specs/SPEC-002-tag-filter.md       f33c0f8d663f
+   TEST:tests/conftest.py       tests/conftest.py                  c2b7a4538caf
+   TEST:tests/test_tag_filter.py tests/test_tag_filter.py           3800dbb5d7aa
+   TEST:tests/test_tasks_api.py tests/test_tasks_api.py            6a31a4f871cd
+
+-- SELECT ... FROM spec_refs WHERE spec_key='SPEC-002'
+   SPEC-002   module     taskboard/app.py
+   SPEC-002   module     taskboard/store.py
+   SPEC-002   regression tests/test_tasks_api.py
+   SPEC-002   test       tests/test_tag_filter.py
+
+-- 检索规格时实际执行的 SQL
+SELECT doc_key, kind, path, title, content, sha256, meta FROM documents WHERE kind = 'spec' AND (title LIKE %s OR content LIKE %s OR title LIKE %s OR content LIKE %s OR title LIKE %s OR content LIKE %s OR title LIKE %s OR content LIKE %s OR title LIKE %s OR content LIKE %s OR title LIKE %s OR content LIKE %s OR title LIKE %s OR content LIKE %s OR title LIKE %s OR content LIKE %s OR title LIKE %s OR content LIKE %s OR title LIKE %s OR content LIKE %s OR title LIKE %s OR content LIKE %s) LIMIT 20
+-- 参数: ["%为任%", "%为任%", "%任务%", "%任务%", "%务列%", "%务列%", "%列表%", "%列表%", "%表增%", "%表增%", "%增加%", "%增加%", "%加按%", "%加按%", "%按标%", "%按标%", "%标签%", "%标签%", "%签筛%", "%签筛%", "%筛选%", "%筛选%"]
+-- 命中行数: 2
+-- 命中规格: SPEC-001, SPEC-002

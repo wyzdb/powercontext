@@ -1,0 +1,18 @@
+# 本地环境（不提交）
+.venv/
+.tools/
+.tmp/
+.uv-cache/
+__pycache__/
+*.py[cod]
+
+# 凭据（不提交真实 Key）
+.env
+
+# 运行时产物
+records/minimax/*.jsonl
+records/**/raw/
+*.cache
+
+# PowerContext / seekdb 本地数据
+state/

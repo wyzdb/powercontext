@@ -1,0 +1,164 @@
+{
+  "task": "为任务列表增加按标签筛选",
+  "generated_at": "2026-10-29T11:06:58+08:00",
+  "database": {
+    "dsn": "seekdb://127.0.0.1:2881/mmx_ctx",
+    "documents": 9,
+    "spec_refs": 7
+  },
+  "retrieval": {
+    "tokens": [
+      "为任",
+      "任务",
+      "务列",
+      "列表",
+      "表增",
+      "增加",
+      "加按",
+      "按标",
+      "标签",
+      "签筛",
+      "筛选"
+    ],
+    "primary_spec": "SPEC-002",
+    "constraints": [
+      "SPEC-001"
+    ]
+  },
+  "specs": [
+    {
+      "key": "SPEC-002",
+      "title": "SPEC-002 任务列表按标签筛选",
+      "path": "specs/SPEC-002-tag-filter.md",
+      "role": "primary",
+      "score": 49.0,
+      "requirements": [
+        {
+          "id": "REQ-TAG-01",
+          "title": "支持 tag 查询参数"
+        },
+        {
+          "id": "REQ-TAG-02",
+          "title": "匹配规则"
+        },
+        {
+          "id": "REQ-TAG-03",
+          "title": "与 status 组合"
+        },
+        {
+          "id": "REQ-TAG-04",
+          "title": "边界输入"
+        },
+        {
+          "id": "REQ-TAG-05",
+          "title": "兼容性"
+        }
+      ],
+      "excerpt": "# SPEC-002 任务列表按标签筛选  | 字段 | 值 | | --- | --- | | 规格编号 | SPEC-002 | | 状态 | 已批准 | | 版本 | 1.0 | | 生效日期 | 2026-10-29 | | 适用模块 | `taskboard/app.py`、`taskboard/store.py` | | 上游规格 | SPEC-001（必须保持兼容） | | 关联测试 | `tests/test_tag_filter.py` | | 回归测试 | `tests/test_tasks_api.py` | | 任务 | TASK-001 为任务列表增加按标签筛选 |"
+    },
+    {
+      "key": "SPEC-001",
+      "title": "SPEC-001 任务列表接口（基线）",
+      "path": "specs/SPEC-001-task-list-baseline.md",
+      "role": "constraint",
+      "score": 19.0,
+      "requirements": [
+        {
+          "id": "REQ-LIST-01",
+          "title": "返回全部任务"
+        },
+        {
+          "id": "REQ-LIST-02",
+          "title": "按状态过滤"
+        },
+        {
+          "id": "REQ-LIST-03",
+          "title": "响应结构"
+        },
+        {
+          "id": "REQ-LIST-04",
+          "title": "任务字段"
+        },
+        {
+          "id": "REQ-LIST-05",
+          "title": "状态枚举"
+        }
+      ],
+      "excerpt": "# SPEC-001 任务列表接口（基线）  | 字段 | 值 | | --- | --- | | 规格编号 | SPEC-001 | | 状态 | 已发布 | | 版本 | 1.0 | | 生效日期 | 2026-10-15 | | 适用模块 | `taskboard/app.py`、`taskboard/store.py` | | 关联测试 | `tests/test_tasks_api.py` |  ## 1. 目的  定义任务看板对外提供的任务列表接口，作为其他规格（如 SPEC-002）的兼容性基线。  ## 2. 需求  ### REQ-LIST-01 返回全部任务  `GET /"
+    }
+  ],
+  "code": [
+    {
+      "path": "taskboard/app.py",
+      "doc_key": "CODE:taskboard/app.py",
+      "sha256": "43603e06de4838d81d3f3f7f7e9c9d54e1c78aa001605cafc13448e2a413e60b",
+      "reason": "被 SPEC-002 的「适用模块」引用",
+      "symbols": [
+        {
+          "name": "list_tasks",
+          "line": 18,
+          "end_line": 38,
+          "doc": "GET /api/tasks：返回任务列表，支持 status 过滤。"
+        }
+      ]
+    },
+    {
+      "path": "taskboard/store.py",
+      "doc_key": "CODE:taskboard/store.py",
+      "sha256": "e39cf01cd0822898a90380bfdd98a4427a491f3630f5402eb858fdb87f759d1f",
+      "reason": "被 SPEC-002 的「适用模块」引用",
+      "symbols": [
+        {
+          "name": "filter_tasks",
+          "line": 104,
+          "end_line": 119,
+          "doc": "按状态过滤任务。"
+        },
+        {
+          "name": "all_tasks",
+          "line": 98,
+          "end_line": 101,
+          "doc": "按 id 升序返回全部任务。"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "path": "tests/test_tag_filter.py",
+      "doc_key": "TEST:tests/test_tag_filter.py",
+      "role": "target",
+      "reason": "SPEC-002 的「关联测试」",
+      "cases": [
+        "test_filter_by_tag",
+        "test_tag_match_is_case_insensitive",
+        "test_tag_requires_exact_token",
+        "test_unknown_tag_returns_empty_list",
+        "test_empty_tag_is_treated_as_absent",
+        "test_tag_combined_with_status",
+        "test_tag_filter_keeps_response_shape"
+      ]
+    },
+    {
+      "path": "tests/test_tasks_api.py",
+      "doc_key": "TEST:tests/test_tasks_api.py",
+      "role": "regression",
+      "reason": "TEST:tests/test_tasks_api.py 由约束规格引用",
+      "cases": [
+        "test_health",
+        "test_list_all_tasks_sorted_by_id",
+        "test_task_shape",
+        "test_filter_by_status_open",
+        "test_filter_by_status_done",
+        "test_invalid_status_rejected",
+        "test_count_matches_items",
+        "test_unknown_query_parameter_is_ignored"
+      ]
+    }
+  ],
+  "state": {
+    "done": [],
+    "todo": [],
+    "verifications": []
+  }
+}
