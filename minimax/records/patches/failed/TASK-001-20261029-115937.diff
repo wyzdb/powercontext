@@ -1,0 +1,52 @@
+diff --git a/taskboard/app.py b/taskboard/app.py
+--- a/taskboard/app.py
++++ b/taskboard/app.py
+@@ -18,10 +18,9 @@ def health():
+ 
+ 
+ def list_tasks():
+-    """GET /api/tasks：返回任务列表，支持 status 过滤。
+-
+-    改前状态：只按 status 过滤，``tag`` 参数被忽略（SPEC-002 待实现）。
+-    """
++    """GET /api/tasks：返回任务列表，支持 status 和 tag 过滤。"""
+ 
+     status = request.args.get("status")
++    tag = request.args.get("tag")
+     if status is not None and status not in STATUSES:
+         return (
+             jsonify(
+@@ -35,6 +34,6 @@ def list_tasks():
+             400,
+         )
+ 
+-    items = filter_tasks(all_tasks(), status=status)
++    items = filter_tasks(all_tasks(), status=status, tag=tag)
+     return jsonify({"items": items, "count": len(items)})
+ 
+ 
+diff --git a/taskboard/store.py b/taskboard/store.py
+--- a/taskboard/store.py
++++ b/taskboard/store.py
+@@ -109,13 +109,17 @@ def filter_tasks(
+     status: str | None = None,
+     tag: str | None = None,
+ ) -> list[dict]:
+-    """按状态过滤任务。
+-
+-    注意：这里刻意 **没有** 实现按标签过滤。SPEC-002 要求增加该能力，
+-    本函数就是本次任务需要修改的位置（改前状态）。
+-    """
++    """按状态和标签过滤任务。"""
+ 
+     result = list(tasks)
+     if status is not None:
+         result = [task for task in result if task["status"] == status]
++    if tag is not None and tag != "":
++        normalized_tag = tag.casefold()
++        result = [
++            task
++            for task in result
++            if any(label.casefold() == normalized_tag for label in task["tags"])
++        ]
+     return result

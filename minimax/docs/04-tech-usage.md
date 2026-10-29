@@ -28,9 +28,12 @@
 | 10:53 | 区域/模型矩阵排查 | 国内站鉴权通过、4 个模型均 402；国际站 401 | 见本文 §1.3 |
 | 11:08 | 补丁生成（`ctx.cli patch`） | `402 insufficient balance (1008)` | 同上 |
 | 11:14 | 提示词 dry-run（`--dry-run`，不调用模型） | 生成 471 行、11300 字符提示词 | `records/patches/TASK-001-20261029-111414.prompt.md` |
+| 11:59 | 环境自检（新 Key `sk-api-`） | `MINIMAX_OK`，230 tokens，6.8s | `calls-20261029.jsonl` |
+| 11:59 | 补丁生成（diff 模式） | 调用成功（5561 tokens，13.6s），但模型给的 hunk 行数不合法，`git apply` 报 corrupt patch | `records/patches/TASK-001-20261029-115937.diff` |
+| 12:01 | 补丁生成（files 模式，改为让模型输出完整文件、本地算 diff） | 成功：6459 tokens，49.5s，应用后 15 个测试全部通过 | `TASK-001-20261029-120132.diff` |
 
-> 说明：订阅 Key 本身有效（`GET /v1/models` 返回 200，可见 9 个模型），但账户当前没有可用额度，
-> 因此补丁生成尚未产生成功调用。额度恢复后执行 `ctx.cli patch` 即可补齐成功的调用记录与补丁文件。
+> 说明：10:52–11:14 用的是赛题发放的订阅 Key（`sk-cp-`），鉴权通过但账户额度为 0，全部 402；
+> 11:59 起换成用户提供的按量付费 Key（`sk-api-`），调用成功并完成补丁生成。
 
 ### 1.3 排查记录（可复现）
 
@@ -53,7 +56,11 @@ cd minimax
 .\.venv\Scripts\python.exe -m ctx.cli patch --context records\context-TASK-001.json --apply
 ```
 
-产物：`records/patches/TASK-001-<时间>.diff`（补丁）、`TASK-001-<时间>.prompt.md`（完整提示词）。
+产物：`records/patches/TASK-001-<时间>.diff`（补丁）、`*.prompt.md`（完整提示词）、`*.response.md`（模型原始输出）、`*.files/`（模型给出的完整文件）。
+
+**两段式输出**：第一次让模型直接给 unified diff，hunk 行数不合法（`corrupt patch`）；
+改成让模型只输出"修改后的完整文件"，由 `difflib` 在本地计算 diff，格式必定合法。
+两次调用都记录在 `calls-20261029.jsonl`（`purpose=patch-generation`）。
 
 ---
 

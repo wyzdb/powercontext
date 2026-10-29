@@ -1,0 +1,8 @@
+# label: after-fix
+# time: 2026-10-29T12:01:48+08:00
+# cwd: C:\Users\L\Documents\deepseek-harness\default-workspace\powercontext\minimax\demo\taskboard
+# command: C:\Users\L\Documents\deepseek-harness\default-workspace\powercontext\minimax\.venv\Scripts\python.exe -m pytest -q
+# exit: 0
+
+...............                                                          [100%]
+15 passed in 0.14s

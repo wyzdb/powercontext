@@ -107,13 +107,16 @@ def filter_tasks(
     status: str | None = None,
     tag: str | None = None,
 ) -> list[dict]:
-    """按状态过滤任务。
-
-    注意：这里刻意 **没有** 实现按标签过滤。SPEC-002 要求增加该能力，
-    本函数就是本次任务需要修改的位置（改前状态）。
-    """
+    """按状态和标签过滤任务。标签匹配不区分大小写，但必须完整匹配。"""
 
     result = list(tasks)
     if status is not None:
         result = [task for task in result if task["status"] == status]
+    if tag:
+        normalized_tag = tag.casefold()
+        result = [
+            task
+            for task in result
+            if any(label.casefold() == normalized_tag for label in task["tags"])
+        ]
     return result

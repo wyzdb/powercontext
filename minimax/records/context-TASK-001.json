@@ -1,6 +1,6 @@
 {
   "task": "为任务列表增加按标签筛选",
-  "generated_at": "2026-10-29T11:18:36+08:00",
+  "generated_at": "2026-10-29T12:02:11+08:00",
   "database": {
     "dsn": "seekdb://127.0.0.1:2881/mmx_ctx",
     "documents": 9,
@@ -190,23 +190,22 @@
   ],
   "state": {
     "done": [
-      "SPEC-001 / SPEC-002 已导入 seekdb（9 篇文档、8 条引用）",
+      "SPEC-001 / SPEC-002 已导入 seekdb（9 篇文档、7 条引用）",
       "改前基线已记录：目标测试 7 失败、回归测试 8 通过",
       "上下文模块 CLI 完成：import / build / patch / state-save / state-load",
-      "规格更新验证：SPEC-002 升到 1.1，重新导入后上下文 requirements 从 5 条变 6 条"
+      "规格更新验证：SPEC-002 升到 1.1，重新导入后上下文 requirements 从 5 条变 6 条",
+      "MiniMax-M3.1-Flash 生成补丁并应用：taskboard/app.py + taskboard/store.py，目标与回归测试 15 个全部通过"
     ],
     "specs": [
       "SPEC-002",
       "SPEC-001"
     ],
-    "stage": "context-ready",
+    "stage": "implemented",
     "task_id": "TASK-001",
     "todo": [
-      "用 MiniMax-M3.1-Flash 生成 tag 过滤补丁",
-      "应用补丁并跑目标测试与回归测试",
-      "把改后测试日志与补丁写入提交材料"
+      "整理提交材料（diff、日志、技术记录）并推送私有仓库"
     ],
-    "updated_at": "2026-10-29T11:13:16+08:00",
+    "updated_at": "2026-10-29T12:02:06+08:00",
     "verifications": [
       {
         "command": "pytest -q",
@@ -219,6 +218,12 @@
         "exit_code": 0,
         "name": "context-source-check",
         "summary": "SPEC-002 + SPEC-001 + list_tasks/filter_tasks + 2 个测试文件"
+      },
+      {
+        "command": "pytest -q",
+        "exit_code": 0,
+        "name": "after-fix",
+        "summary": "15 passed"
       }
     ]
   },
@@ -226,7 +231,7 @@
     "system": "PowerContext",
     "server": "http://127.0.0.1:18080",
     "scope_id": "scp_1bq2h3zc1cx29vrr74j15jpq8v",
-    "artifact": "art_3d53348095d04d098f52aeed49748ab9",
+    "artifact": "art_29b4531297834b338ea15048f0042d01",
     "revision": 1
   }
 }

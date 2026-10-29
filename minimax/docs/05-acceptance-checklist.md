@@ -34,8 +34,8 @@
 | 补丁 | 生成 `records/patches/TASK-001-*.diff` 与同名 `.prompt.md` |
 | 调用记录 | `records/minimax/calls-*.jsonl` 里 `purpose=patch-generation` 且 `ok=true` |
 
-> 当前状态：账户额度未开通前，调用返回 `402 insufficient balance (1008)`（记录在 `calls-20261029.jsonl`）。
-> 额度开通后重跑上面两条命令即可补齐。
+> 已完成：11:59 用按量付费 Key 跑通自检（`MINIMAX_OK`），12:01 生成本次补丁并应用，
+> 目标 + 回归测试 15 个全部通过。记录见 `records/minimax/calls-20261029.jsonl` 与 `records/patches/`。
 
 ---
 

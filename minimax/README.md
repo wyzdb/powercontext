@@ -7,11 +7,11 @@
 | 验收项 | 状态 | 证据 |
 | --- | --- | --- |
 | 能够运行 | ✅ | 本 README 第 3–7 节 |
-| MiniMax 实际参与 | ⏳ 待额度 | `records/minimax/*.jsonl`、`records/patches/` |
+| MiniMax 实际参与 | ✅ | `records/minimax/calls-20261029.jsonl`（12:01 成功调用）、`records/patches/` |
 | 上下文正确 | ✅ | `records/context-TASK-001.json` |
 | 数据库实际参与 | ✅ | seekdb `mmx_ctx` 库，`ctx/importer.py` |
 | 状态能够复用 | ✅ | `ctx state-save` / `state-load`，重启后读回 |
-| 代码修改有效 | ⏳ 待补丁 | `records/test-runs.jsonl` |
+| 代码修改有效 | ✅ | 改前 7 failed / 改后 15 passed，`records/test-runs.jsonl` |
 
 > 一键演示：`powershell -ExecutionPolicy Bypass -File scripts/demo.ps1`
 > 逐条验收对照：[docs/05-acceptance-checklist.md](docs/05-acceptance-checklist.md)

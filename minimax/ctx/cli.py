@@ -87,7 +87,7 @@ def _cmd_patch(args: argparse.Namespace) -> int:
         return 0
 
     try:
-        result = patch.generate(context, model=args.model)
+        result = patch.generate(context, model=args.model, output_format=args.output_format)
     except Exception as exc:
         print(f"[patch] 生成失败：{type(exc).__name__}: {exc}", file=sys.stderr)
         return 3
@@ -168,6 +168,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_patch = sub.add_parser("patch", help="用 MiniMax 生成补丁")
     p_patch.add_argument("--context", required=True, help="ctx build 产出的上下文 JSON")
     p_patch.add_argument("--model", default=None)
+    p_patch.add_argument("--output-format", choices=["files", "diff"], default="files",
+                         help="files=模型给完整文件、本地算 diff（默认，最稳）；diff=模型直接给 unified diff")
     p_patch.add_argument("--apply", action="store_true", help="生成后直接 git apply")
     p_patch.add_argument("--dry-run", action="store_true", help="只生成提示词，不调用 MiniMax")
     p_patch.set_defaults(func=_cmd_patch)

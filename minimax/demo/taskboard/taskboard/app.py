@@ -16,10 +16,7 @@ def health():
 
 
 def list_tasks():
-    """GET /api/tasks：返回任务列表，支持 status 过滤。
-
-    改前状态：只按 status 过滤，``tag`` 参数被忽略（SPEC-002 待实现）。
-    """
+    """GET /api/tasks：返回任务列表，支持 status 和 tag 过滤。"""
 
     status = request.args.get("status")
     if status is not None and status not in STATUSES:
@@ -34,7 +31,8 @@ def list_tasks():
             400,
         )
 
-    items = filter_tasks(all_tasks(), status=status)
+    tag = request.args.get("tag") or None
+    items = filter_tasks(all_tasks(), status=status, tag=tag)
     return jsonify({"items": items, "count": len(items)})
 
 

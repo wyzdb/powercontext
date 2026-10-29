@@ -93,7 +93,11 @@ python -m venv .venv
 | 阶段 | 目标测试 | 回归测试 | 记录 |
 | --- | --- | --- | --- |
 | 改前 | 7 failed | 8 passed | `records/test-runs.jsonl`，label=`baseline` |
-| 改后 | 7 passed | 8 passed | `records/test-runs.jsonl`，label=`after-fix` |
+| 改后 | 7 passed | 8 passed | `records/test-runs.jsonl`，label=`after-fix`（exit 0） |
+
+改后使用的补丁由 MiniMax 生成：`records/patches/TASK-001-20261029-120132.diff`，
+应用后 `taskboard/app.py` 读取 `tag` 参数并透传，`taskboard/store.py` 用 `casefold()` 做大小写不敏感的完整标签匹配。
+测试文件在改前改后哈希一致（见 `test-runs.jsonl` 的 `test_files` 字段），未被改动。
 
 ### 5.3 状态复用
 
