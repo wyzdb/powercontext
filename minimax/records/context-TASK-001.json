@@ -1,6 +1,6 @@
 {
   "task": "为任务列表增加按标签筛选",
-  "generated_at": "2026-10-29T11:11:53+08:00",
+  "generated_at": "2026-10-29T11:17:20+08:00",
   "database": {
     "dsn": "seekdb://127.0.0.1:2881/mmx_ctx",
     "documents": 9,
@@ -206,7 +206,7 @@
       "应用补丁并跑目标测试与回归测试",
       "把改后测试日志与补丁写入提交材料"
     ],
-    "updated_at": "2026-10-29T11:11:48+08:00",
+    "updated_at": "2026-10-29T11:13:16+08:00",
     "verifications": [
       {
         "command": "pytest -q",
@@ -226,7 +226,7 @@
     "system": "PowerContext",
     "server": "http://127.0.0.1:18080",
     "scope_id": "scp_1bq2h3zc1cx29vrr74j15jpq8v",
-    "artifact": "art_27821ab13a9c4a8ca3c313eeff7db5c4",
+    "artifact": "art_3d53348095d04d098f52aeed49748ab9",
     "revision": 1
   }
 }

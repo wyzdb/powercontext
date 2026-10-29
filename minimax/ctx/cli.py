@@ -108,12 +108,16 @@ def _cmd_patch(args: argparse.Namespace) -> int:
         import subprocess
 
         repo = DEMO_DIR.parent.parent  # powercontext/
-        cmd = ["git", "-C", str(repo), "apply", "--directory", "minimax/demo/taskboard", str(result.path)]
-        check = subprocess.run(cmd[:3] + ["--check"] + cmd[3:], capture_output=True, text=True)
+        # Windows 下 git 默认 autocrlf=true，工作区是 CRLF、补丁是 LF，
+        # 必须忽略行尾差异，否则 --check 会误报 "patch does not apply"。
+        base = ["git", "-C", str(repo), "apply", "--ignore-whitespace"]
+        target = ["--directory", "minimax/demo/taskboard", str(result.path)]
+
+        check = subprocess.run(base + ["--check"] + target, capture_output=True, text=True)
         if check.returncode != 0:
             print(f"[patch] git apply --check 失败：{check.stderr.strip()}", file=sys.stderr)
             return 4
-        applied = subprocess.run(cmd, capture_output=True, text=True)
+        applied = subprocess.run(base + target, capture_output=True, text=True)
         if applied.returncode != 0:
             print(f"[patch] 应用失败：{applied.stderr.strip()}", file=sys.stderr)
             return 4
