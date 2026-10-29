@@ -21,7 +21,6 @@ from sdd_context.patcher import (
     snapshot_sources,
     unified_diff,
 )
-from sdd_context.powercontext_state import PowerContextState
 from sdd_context.store import SeekdbStore, new_id
 
 SYSTEM_PROMPT = """你是严格遵循 SDD（规格驱动开发）的资深 Python 工程师。
@@ -66,6 +65,8 @@ def build_context(
 ) -> dict[str, Any]:
     state = None
     if with_state and task_id:
+        from sdd_context.powercontext_state import PowerContextState
+
         state = PowerContextState(settings).load(store, task_id)
     payload = ContextBuilder(store, settings).build(
         task_text, task_id=task_id, title=title, state=state
@@ -192,6 +193,15 @@ def run_tests(
     return result
 
 
+def validate_code_patch(patch_text: str, business_root: Path) -> None:
+    """Reject changes to tests/specs, even if a model ignores the prompt."""
+    changes = apply_patch(patch_text, business_root, dry_run=True)
+    for change in changes:
+        relative = Path(change.path)
+        if relative.parts[0] != "src" or relative.suffix != ".py":
+            raise PatchError(f"model may modify only existing src/*.py code: {change.path}")
+
+
 def run_task(
     settings: Settings,
     store: SeekdbStore,
@@ -201,6 +211,8 @@ def run_task(
     title: str | None = None,
 ) -> dict[str, Any]:
     """Run one full SDD task: context, MiniMax patch, tests, state, records."""
+
+    from sdd_context.powercontext_state import PowerContextState
 
     start = time.perf_counter()
     run_id = new_id("run")
@@ -237,7 +249,7 @@ def run_task(
         snapshot_sources(settings.business_root, before_dir)
     try:
         patch_text = extract_patch(completion.text)
-        apply_patch(patch_text, settings.business_root, dry_run=True)
+        validate_code_patch(patch_text, settings.business_root)
     except (MiniMaxError, PatchError) as exc:
         state.status = "failed"
         state.step = "patch"

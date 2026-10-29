@@ -159,6 +159,8 @@ def apply_patch(patch_text: str, root: Path, *, dry_run: bool = False) -> list[F
 
     root = root.resolve()
     changes: list[FileChange] = []
+    pending_writes: list[tuple[Path, str]] = []
+    seen: set[Path] = set()
     for file_patch in parse_patch(patch_text):
         relative = file_patch.path
         target = (root / relative).resolve()
@@ -166,6 +168,9 @@ def apply_patch(patch_text: str, root: Path, *, dry_run: bool = False) -> list[F
             raise PatchError(f"patch escapes the project root: {relative}")
         if not target.is_file():
             raise PatchError(f"patched file does not exist: {relative}")
+        if target in seen:
+            raise PatchError(f"duplicate file section: {relative}")
+        seen.add(target)
 
         original_text = target.read_text(encoding="utf-8")
         original_lines = original_text.splitlines()
@@ -215,10 +220,7 @@ def apply_patch(patch_text: str, root: Path, *, dry_run: bool = False) -> list[F
         if original_text.endswith("\n"):
             new_text += "\n"
         after_sha = hashlib.sha256(new_text.encode("utf-8")).hexdigest()
-        if not dry_run:
-            # Write LF explicitly so snapshot hashes match the bytes recorded
-            # in the run log regardless of the host platform.
-            target.write_text(new_text, encoding="utf-8", newline="\n")
+        pending_writes.append((target, new_text))
         changes.append(
             FileChange(
                 path=relative,
@@ -228,6 +230,12 @@ def apply_patch(patch_text: str, root: Path, *, dry_run: bool = False) -> list[F
                 after_sha=after_sha,
             )
         )
+    # Validate every file before touching any source. An invalid later section
+    # must not leave an earlier file changed. This is validation atomicity;
+    # filesystem write failures still propagate to the caller.
+    if not dry_run:
+        for target, new_text in pending_writes:
+            target.write_text(new_text, encoding="utf-8", newline="\n")
     return changes
 
 

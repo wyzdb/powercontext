@@ -15,8 +15,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
-import pymysql
-from pymysql.cursors import DictCursor
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import pymysql
 
 from sdd_context.config import Settings
 from sdd_context.models import IndexBundle, Match, TaskState
@@ -191,6 +193,9 @@ class SeekdbStore:
 
     # -- connection -----------------------------------------------------
     def _connect(self, database: str | None) -> pymysql.connections.Connection:
+        import pymysql
+        from pymysql.cursors import DictCursor
+
         return pymysql.connect(
             host=self.settings.db_host,
             port=self.settings.db_port,

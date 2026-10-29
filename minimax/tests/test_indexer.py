@@ -49,3 +49,17 @@ def test_every_test_cites_at_least_one_spec_or_symbol() -> None:
     for test in bundle.tests:
         for ref in test.spec_refs:
             assert ref in claused or ref in spec_ids, f"{test.test_id} cites unknown {ref}"
+
+
+def test_reimport_reads_changed_specification(project_dir: Path) -> None:
+    import shutil
+
+    business = project_dir / "business"
+    shutil.copytree(BUSINESS, business, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    original = build_index(business)
+    assert "SPEC-ORD-004/R5" not in {c.clause_id for c in original.clauses}
+    shutil.copyfile(business / "specs/updates/SPEC-ORD-004-v2.md",
+                    business / "specs/SPEC-ORD-004-created-after.md")
+    updated = build_index(business)
+    assert "SPEC-ORD-004/R5" in {c.clause_id for c in updated.clauses}
+    assert any(s.spec_id == "SPEC-ORD-004" and str(s.version) == "2" for s in updated.specs)

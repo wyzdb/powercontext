@@ -79,3 +79,40 @@ def test_escape_from_project_root_is_rejected(project_dir: Path) -> None:
     patch = "--- a/../outside.py\n+++ b/../outside.py\n@@ -1 +1,2 @@\n x\n+y\n"
     with pytest.raises(PatchError):
         apply_patch(patch, root)
+
+
+def test_later_invalid_file_leaves_earlier_source_untouched(project_dir: Path) -> None:
+    root = _project(project_dir, "alpha\n")
+    (root / "src" / "second.py").write_text("second\n", encoding="utf-8")
+    patch = (
+        "--- a/src/mod.py\n+++ b/src/mod.py\n@@ -1 +1 @@\n-alpha\n+ALPHA\n"
+        "--- a/src/second.py\n+++ b/src/second.py\n@@ -1 +1 @@\n-wrong\n+SECOND\n"
+    )
+    with pytest.raises(PatchError):
+        apply_patch(patch, root)
+    assert (root / "src" / "mod.py").read_text() == "alpha\n"
+    assert (root / "src" / "second.py").read_text() == "second\n"
+
+
+def test_duplicate_file_sections_are_rejected(project_dir: Path) -> None:
+    root = _project(project_dir, "alpha\n")
+    section = "--- a/src/mod.py\n+++ b/src/mod.py\n@@ -1 +1 @@\n-alpha\n+ALPHA\n"
+    with pytest.raises(PatchError, match="duplicate"):
+        apply_patch(section + section, root)
+    assert (root / "src" / "mod.py").read_text() == "alpha\n"
+
+
+def test_model_patch_cannot_rewrite_test_expectations(project_dir: Path) -> None:
+    from sdd_context.pipeline import validate_code_patch
+
+    tests = project_dir / "tests"
+    tests.mkdir()
+    target = tests / "test_feature.py"
+    target.write_text("assert False\n", encoding="utf-8")
+    patch = (
+        "--- a/tests/test_feature.py\n+++ b/tests/test_feature.py\n"
+        "@@ -1 +1 @@\n-assert False\n+assert True\n"
+    )
+    with pytest.raises(PatchError, match="only existing src"):
+        validate_code_patch(patch, project_dir)
+    assert target.read_text() == "assert False\n"
