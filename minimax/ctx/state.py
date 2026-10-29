@@ -88,24 +88,48 @@ def _parse_state(text: str, task_id: str) -> dict[str, Any] | None:
         return None
 
 
+async def _find_state(client: PowerContextClient, scope_id: str, task_id: str):
+    """找出该任务已有的状态 Memory（取 updated_at 最新的一条）。"""
+
+    response = await client.search_memory(
+        SearchMemoryRequest(scope_id=scope_id, query=f"{STATE_PREFIX}{task_id}", limit=20)
+    )
+
+    best = None
+    for hit in getattr(response, "hits", None) or []:
+        memory = getattr(hit, "memory", None)
+        if memory is None:
+            continue
+        parsed = _parse_state(getattr(memory, "text", "") or "", task_id)
+        if parsed is None:
+            continue
+        stamp = str(parsed.get("updated_at", ""))
+        revision = getattr(getattr(memory, "artifact", None), "revision", 0) or 0
+        key = (stamp, revision)
+        if best is None or key >= best[0]:
+            best = (key, memory)
+    return best[1] if best else None
+
+
 async def save_state(task_id: str, payload: dict[str, Any]) -> dict[str, Any]:
-    """写入/更新任务状态，返回 Server 的响应摘要。"""
+    """写入任务状态。
+
+    PowerContext 的 atomic-memory 每次 ``remember`` 会生成一个新 artifact；
+    读回时按 ``updated_at`` 选最新一条，因此这里保持"追加"语义，
+    历史 revision 都可追溯。
+    """
 
     payload = {
         **payload,
         "task_id": task_id,
         "updated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
     }
+    text = _state_text(task_id, payload)
 
     async with PowerContextClient(SERVER_URL) as client:
         scope_id = await _ensure_scope(client)
         response = await client.remember_memory(
-            RememberMemoryRequest(
-                scope_id=scope_id,
-                kind="state",
-                text=_state_text(task_id, payload),
-                reason=f"{task_id} 阶段状态",
-            )
+            RememberMemoryRequest(scope_id=scope_id, kind="state", text=text, reason=f"{task_id} 阶段状态")
         )
 
     records = getattr(response, "records", None) or []
@@ -113,34 +137,31 @@ async def save_state(task_id: str, payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "scope_id": scope_id,
         "server": SERVER_URL,
+        "mode": "append",
         "artifact": getattr(artifact, "artifact_id", None),
         "revision": getattr(artifact, "revision", None),
         "state": payload,
     }
 
 
-async def load_state(task_id: str, limit: int = 10) -> dict[str, Any] | None:
-    """按任务 ID 找回最近一次状态。"""
+async def load_state(task_id: str, limit: int = 20) -> dict[str, Any] | None:
+    """按任务 ID 找回最近一次状态（按 updated_at 取最新）。"""
 
     async with PowerContextClient(SERVER_URL) as client:
         scope_id = await _ensure_scope(client)
-        response = await client.search_memory(
-            SearchMemoryRequest(scope_id=scope_id, query=f"{STATE_PREFIX}{task_id}", limit=limit)
-        )
+        memory = await _find_state(client, scope_id, task_id)
 
-    for hit in getattr(response, "hits", None) or []:
-        memory = getattr(hit, "memory", None)
-        text = getattr(memory, "text", "") or ""
-        parsed = _parse_state(text, task_id)
-        if parsed is not None:
-            return {
-                "scope_id": scope_id,
-                "server": SERVER_URL,
-                "artifact": getattr(getattr(memory, "artifact", None), "artifact_id", None),
-                "revision": getattr(getattr(memory, "artifact", None), "revision", None),
-                "state": parsed,
-            }
-    return None
+    if memory is None:
+        return None
+
+    artifact = getattr(memory, "artifact", None)
+    return {
+        "scope_id": scope_id,
+        "server": SERVER_URL,
+        "artifact": getattr(artifact, "artifact_id", None),
+        "revision": getattr(artifact, "revision", None),
+        "state": _parse_state(memory.text, task_id),
+    }
 
 
 def save(task_id: str, payload: dict[str, Any]) -> dict[str, Any]:

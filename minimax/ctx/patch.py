@@ -92,6 +92,18 @@ def extract_diff(text: str) -> str:
     raise ValueError("模型输出里没有找到 unified diff")
 
 
+def write_prompt(context: dict[str, Any], messages: list[dict[str, str]] | None = None) -> tuple[Path, int]:
+    """把完整提示词落盘（不调用模型），返回 (路径, 字符数)。"""
+
+    messages = messages or build_messages(context)
+    PATCH_DIR.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    path = PATCH_DIR / f"TASK-001-{stamp}.prompt.md"
+    text = "\n\n".join(f"## {m['role']}\n{m['content']}" for m in messages)
+    path.write_text(text, encoding="utf-8")
+    return path, len(text)
+
+
 def build_messages(context: dict[str, Any], root: Path = DEMO_DIR) -> list[dict[str, str]]:
     return [
         {"role": "system", "content": SYSTEM_PROMPT},

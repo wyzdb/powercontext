@@ -25,8 +25,9 @@
 | 时间 | 用途 | 结果 | 记录 |
 | --- | --- | --- | --- |
 | 10:52 | 环境自检（`tools/check_minimax.py`） | `402 insufficient balance (1008)` | `records/minimax/calls-20261029.jsonl` |
-| 10:53 | 区域/模型矩阵排查 | 国内站 401 鉴权通过、4 个模型均 402；国际站 401 | 见本文 §1.3 |
+| 10:53 | 区域/模型矩阵排查 | 国内站鉴权通过、4 个模型均 402；国际站 401 | 见本文 §1.3 |
 | 11:08 | 补丁生成（`ctx.cli patch`） | `402 insufficient balance (1008)` | 同上 |
+| 11:14 | 提示词 dry-run（`--dry-run`，不调用模型） | 生成 471 行、11300 字符提示词 | `records/patches/TASK-001-20261029-111414.prompt.md` |
 
 > 说明：订阅 Key 本身有效（`GET /v1/models` 返回 200，可见 9 个模型），但账户当前没有可用额度，
 > 因此补丁生成尚未产生成功调用。额度恢复后执行 `ctx.cli patch` 即可补齐成功的调用记录与补丁文件。
@@ -110,8 +111,11 @@ LIMIT 20;
 | 对象 | 值 |
 | --- | --- |
 | Scope | `mmx-sdd-taskboard`，`scp_1bq2h3zc1cx29vrr74j15jpq8v` |
-| Memory artifact | `art_19dfbf53d398431c89d7e032b6fb8ec7`，revision `1` |
+| Memory 家族 | `atomic-memory`，每次写入生成一个 artifact（`art_...`），按 `updated_at` 取最新 |
 | 正文 | `STATE TASK-001 {...}`，含 `done / todo / verifications` |
+
+> artifact ID 每次写入都会变化，以命令输出为准；`load_state` 会按 `updated_at` 选出最新一条，
+> 因此重启后读到的一定是最后一次写入的状态。
 
 ```powershell
 # 写入

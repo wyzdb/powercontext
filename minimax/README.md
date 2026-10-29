@@ -150,6 +150,18 @@ docker run -d --name seekdb -p 2881:2881 oceanbase/seekdb
 
 **选择方式**：任务文本切词 → 文档打分（标题权重 3、正文权重 1）→ 最高分规格作为主规格 → 沿 `spec_refs` 展开「适用模块」为代码、「关联测试」为目标测试；主规格的「上游规格」作为兼容性约束，其关联测试作为回归测试。所以即使 `app.py` 里没有出现"标签"二字，也能被定位到。
 
+**自检**（缺任何必要来源都会以退出码 1 失败）：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\verify_context.py
+```
+
+**单元测试**（切词、diff 提取；数据库/PowerContext 不可用时自动 skip）：
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
 ---
 
 ## 6. 用 MiniMax 生成补丁
@@ -159,6 +171,7 @@ docker run -d --name seekdb -p 2881:2881 oceanbase/seekdb
 ```
 
 - 提示词 = 主规格全文 + 约束规格全文 + 待改代码 + 目标/回归测试 + 输出格式要求
+- 先看提示词而不调用模型：加 `--dry-run`，产物在 `records/patches/*.prompt.md`
 - 模型输出只接受 unified diff（` ```diff ` 块），落盘到 `records/patches/TASK-001-<时间>.diff`，同时保存完整提示词 `TASK-001-<时间>.prompt.md`
 - `--apply` 会先 `git apply --check` 再应用
 - 每次调用的请求、响应、token 用量、时延都写入 `records/minimax/calls-YYYYMMDD.jsonl`
@@ -208,8 +221,8 @@ cd minimax
 # 读取（Server 重启后同样可用）
 .\.venv\Scripts\python.exe -m ctx.cli state-load --task-id TASK-001
 
-# 生成上下文时合并状态
-.\.venv\Scripts\python.exe -m ctx.cli build --task "..." --task-id TASK-001 --with-state
+# 生成上下文时合并状态（给了 --task-id 就会自动读 PowerContext）
+.\.venv\Scripts\python.exe -m ctx.cli build --task "..." --task-id TASK-001
 ```
 
 状态正文是 JSON（`done` / `todo` / `verifications`），以 `STATE TASK-001` 前缀存入 PowerContext 的 Memory，Scope 为 `mmx-sdd-taskboard`。Scope ID 缓存在 `state/scope.json`；缓存丢失时会先按标题查找，找不到再用固定 idempotency key 创建。

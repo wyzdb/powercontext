@@ -25,7 +25,12 @@ def _cmd_import(args: argparse.Namespace) -> int:
 
 
 def _cmd_build(args: argparse.Namespace) -> int:
-    saved_state = state.load(args.task_id) if args.with_state and args.task_id else None
+    saved_state = None
+    if args.task_id and not args.no_state:
+        try:
+            saved_state = state.load(args.task_id)
+        except Exception as exc:  # Server 没起时不阻塞上下文生成
+            print(f"[warn] 读取 PowerContext 状态失败（{type(exc).__name__}: {exc}），state 留空", file=sys.stderr)
     context = retrieve.build_context(
         args.task,
         root=Path(args.root),
@@ -70,6 +75,16 @@ def _cmd_state_load(args: argparse.Namespace) -> int:
 def _cmd_patch(args: argparse.Namespace) -> int:
     context = patch.load_context(args.context)
     print(json.dumps(patch.summarize(context), ensure_ascii=False, indent=2), file=sys.stderr)
+
+    if args.dry_run:
+        messages = patch.build_messages(context)
+        path, chars = patch.write_prompt(context, messages)
+        print(json.dumps(
+            {"dry_run": True, "prompt_path": str(path), "prompt_chars": chars, "messages": len(messages)},
+            ensure_ascii=False,
+            indent=2,
+        ))
+        return 0
 
     try:
         result = patch.generate(context, model=args.model)
@@ -131,8 +146,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_build = sub.add_parser("build", help="按任务生成上下文")
     p_build.add_argument("--task", required=True)
-    p_build.add_argument("--task-id", default=None, help="关联任务 ID（读取 PowerContext 状态时需要）")
-    p_build.add_argument("--with-state", action="store_true", help="从 PowerContext 读取任务状态并合并")
+    p_build.add_argument("--task-id", default=None, help="关联任务 ID（默认自动读取 PowerContext 状态）")
+    p_build.add_argument("--no-state", action="store_true", help="不读取 PowerContext 状态")
     p_build.add_argument("--root", default=str(DEMO_DIR))
     p_build.add_argument("--out", default=None, help="同时写入文件")
     p_build.set_defaults(func=_cmd_build)
@@ -150,6 +165,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_patch.add_argument("--context", required=True, help="ctx build 产出的上下文 JSON")
     p_patch.add_argument("--model", default=None)
     p_patch.add_argument("--apply", action="store_true", help="生成后直接 git apply")
+    p_patch.add_argument("--dry-run", action="store_true", help="只生成提示词，不调用 MiniMax")
     p_patch.set_defaults(func=_cmd_patch)
 
     p_stats = sub.add_parser("stats", help="查看库内统计")
