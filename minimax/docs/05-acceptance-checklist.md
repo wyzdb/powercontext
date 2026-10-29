@@ -102,9 +102,9 @@
 | 阶段 | 目标测试 | 回归测试 | 退出码 |
 | --- | --- | --- | --- |
 | 改前 | 7 failed | 8 passed | 1 |
-| 改后 | 7 passed | 8 passed | 0 |
+| 改后（实测） | 7 passed | 8 passed | 0 |
 
-证据：`records/test-runs.jsonl`、`records/test-logs/`。
+证据：`records/test-runs.jsonl`、`records/test-logs/`、`records/snapshots/before|after/`。
 
 ---
 

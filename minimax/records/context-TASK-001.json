@@ -1,6 +1,6 @@
 {
   "task": "为任务列表增加按标签筛选",
-  "generated_at": "2026-10-29T12:02:11+08:00",
+  "generated_at": "2026-10-29T12:04:31+08:00",
   "database": {
     "dsn": "seekdb://127.0.0.1:2881/mmx_ctx",
     "documents": 9,
@@ -123,28 +123,28 @@
     {
       "path": "taskboard/app.py",
       "doc_key": "CODE:taskboard/app.py",
-      "sha256": "43603e06de4838d81d3f3f7f7e9c9d54e1c78aa001605cafc13448e2a413e60b",
+      "sha256": "6f79a57b3d72beb1b48a0a7f04b4643f23ab4bdcfff676ab934dcedc15516f29",
       "reason": "被 SPEC-002 的「适用模块」引用",
       "symbols": [
         {
           "name": "list_tasks",
           "line": 18,
-          "end_line": 38,
-          "doc": "GET /api/tasks：返回任务列表，支持 status 过滤。"
+          "end_line": 36,
+          "doc": "GET /api/tasks：返回任务列表，支持 status 和 tag 过滤。"
         }
       ]
     },
     {
       "path": "taskboard/store.py",
       "doc_key": "CODE:taskboard/store.py",
-      "sha256": "e39cf01cd0822898a90380bfdd98a4427a491f3630f5402eb858fdb87f759d1f",
+      "sha256": "2b495ec5723810ddc5e2c6cc43725cddd935a5c241f022ea3a397e98a1fd809a",
       "reason": "被 SPEC-002 的「适用模块」引用",
       "symbols": [
         {
           "name": "filter_tasks",
           "line": 104,
-          "end_line": 119,
-          "doc": "按状态过滤任务。"
+          "end_line": 122,
+          "doc": "按状态和标签过滤任务。标签匹配不区分大小写，但必须完整匹配。"
         },
         {
           "name": "all_tasks",
