@@ -1,0 +1,112 @@
+# label: demo
+# time: 2026-10-29T11:18:40+08:00
+# cwd: C:\Users\L\Documents\deepseek-harness\default-workspace\powercontext\minimax\demo\taskboard
+# command: C:\Users\L\Documents\deepseek-harness\default-workspace\powercontext\minimax\.venv\Scripts\python.exe -m pytest -q
+# exit: 1
+
+FFFFFFF........                                                          [100%]
+================================== FAILURES ===================================
+_____________________________ test_filter_by_tag ______________________________
+
+client = <FlaskClient <Flask 'taskboard.app'>>
+
+    def test_filter_by_tag(client):
+        """REQ-TAG-01：只返回 tags 中包含该标签的任务。"""
+        body = client.get("/api/tasks?tag=backend").get_json()
+>       assert body["count"] == 4
+E       assert 10 == 4
+
+tests\test_tag_filter.py:13: AssertionError
+_____________________ test_tag_match_is_case_insensitive ______________________
+
+client = <FlaskClient <Flask 'taskboard.app'>>
+
+    def test_tag_match_is_case_insensitive(client):
+        """REQ-TAG-02：大小写不敏感，Backend 与 backend 等价。"""
+        lower = client.get("/api/tasks?tag=backend").get_json()
+        upper = client.get("/api/tasks?tag=Backend").get_json()
+    
+        # 先确认筛选本身生效，再比较两种大小写结果（避免改前"两边都是全量"而假通过）。
+>       assert lower["count"] == 4
+E       assert 10 == 4
+
+tests\test_tag_filter.py:24: AssertionError
+________________________ test_tag_requires_exact_token ________________________
+
+client = <FlaskClient <Flask 'taskboard.app'>>
+
+    def test_tag_requires_exact_token(client):
+        """REQ-TAG-02：按完整标签匹配，不做子串匹配。"""
+        body = client.get("/api/tasks?tag=back").get_json()
+>       assert body["count"] == 0
+E       assert 10 == 0
+
+tests\test_tag_filter.py:32: AssertionError
+_____________________ test_unknown_tag_returns_empty_list _____________________
+
+client = <FlaskClient <Flask 'taskboard.app'>>
+
+    def test_unknown_tag_returns_empty_list(client):
+        """REQ-TAG-04：未知标签返回空列表，HTTP 状态仍是 200。"""
+        resp = client.get("/api/tasks?tag=does-not-exist")
+        assert resp.status_code == 200
+    
+        body = resp.get_json()
+>       assert body["items"] == []
+E       AssertionError: assert [{'due': '202...s', ...}, ...] == []
+E         
+E         Left contains 10 more items, first extra item: {'due': '2026-11-02', 'id': 1, 'owner': 'alice', 'status': 'open', ...}
+E         Use -v to get more diff
+
+tests\test_tag_filter.py:42: AssertionError
+_____________________ test_empty_tag_is_treated_as_absent _____________________
+
+client = <FlaskClient <Flask 'taskboard.app'>>
+
+    def test_empty_tag_is_treated_as_absent(client):
+        """REQ-TAG-04：tag= 视为未提供，不做任何过滤。"""
+        body = client.get("/api/tasks?tag=").get_json()
+        assert body["count"] == 10
+    
+        # 同时确认非空 tag 确实会过滤，否则"空 tag 返回全量"在改前也是假通过。
+>       assert client.get("/api/tasks?tag=backend").get_json()["count"] == 4
+E       assert 10 == 4
+
+tests\test_tag_filter.py:52: AssertionError
+________________________ test_tag_combined_with_status ________________________
+
+client = <FlaskClient <Flask 'taskboard.app'>>
+
+    def test_tag_combined_with_status(client):
+        """REQ-TAG-03：tag 与 status 同时出现时取交集。"""
+        body = client.get("/api/tasks?status=open&tag=backend").get_json()
+>       assert {task["id"] for task in body["items"]} == {1, 10}
+E       assert {1, 4, 5, 8, 10} == {1, 10}
+E         
+E         Extra items in the left set:
+E         8
+E         4
+E         5
+E         Use -v to get more diff
+
+tests\test_tag_filter.py:58: AssertionError
+____________________ test_tag_filter_keeps_response_shape _____________________
+
+client = <FlaskClient <Flask 'taskboard.app'>>
+
+    def test_tag_filter_keeps_response_shape(client):
+        """REQ-TAG-05：响应结构与排序不变。"""
+        body = client.get("/api/tasks?tag=urgent").get_json()
+>       assert body["count"] == 3
+E       assert 10 == 3
+
+tests\test_tag_filter.py:65: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_tag_filter.py::test_filter_by_tag - assert 10 == 4
+FAILED tests/test_tag_filter.py::test_tag_match_is_case_insensitive - assert ...
+FAILED tests/test_tag_filter.py::test_tag_requires_exact_token - assert 10 == 0
+FAILED tests/test_tag_filter.py::test_unknown_tag_returns_empty_list - Assert...
+FAILED tests/test_tag_filter.py::test_empty_tag_is_treated_as_absent - assert...
+FAILED tests/test_tag_filter.py::test_tag_combined_with_status - assert {1, 4...
+FAILED tests/test_tag_filter.py::test_tag_filter_keeps_response_shape - asser...
+7 failed, 8 passed in 0.37s

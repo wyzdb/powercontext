@@ -13,6 +13,9 @@
 | 状态能够复用 | ✅ | `ctx state-save` / `state-load`，重启后读回 |
 | 代码修改有效 | ⏳ 待补丁 | `records/test-runs.jsonl` |
 
+> 一键演示：`powershell -ExecutionPolicy Bypass -File scripts/demo.ps1`
+> 逐条验收对照：[docs/05-acceptance-checklist.md](docs/05-acceptance-checklist.md)
+
 ---
 
 ## 1. 目录结构

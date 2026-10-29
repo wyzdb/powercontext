@@ -1,4 +1,4 @@
-# 一键初始化 MiniMax 环境（Windows PowerShell）
+﻿# 一键初始化 MiniMax 环境（Windows PowerShell）
 # 用法: powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
 
 $ErrorActionPreference = "Stop"

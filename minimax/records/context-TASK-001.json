@@ -1,6 +1,6 @@
 {
   "task": "为任务列表增加按标签筛选",
-  "generated_at": "2026-10-29T11:17:20+08:00",
+  "generated_at": "2026-10-29T11:18:36+08:00",
   "database": {
     "dsn": "seekdb://127.0.0.1:2881/mmx_ctx",
     "documents": 9,
